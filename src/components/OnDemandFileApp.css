@@ -1,0 +1,635 @@
+.ondemand-app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+/* Header */
+.app-header {
+  text-align: center;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.app-header h1 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 25px;
+  border-radius: 12px;
+  color: white;
+  margin-bottom: 25px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.status-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.activity-indicator {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+/* Connection Section */
+.connection-section {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.connection-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.divider {
+  color: #999;
+  font-size: 0.9rem;
+  font-weight: 500;
+  position: relative;
+  padding: 0 20px;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -50px;
+  right: -50px;
+  height: 1px;
+  background: #e0e0e0;
+  z-index: 1;
+}
+
+.divider {
+  background: white;
+  z-index: 2;
+}
+
+.join-room {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.room-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+  transition: border-color 0.3s;
+}
+
+.room-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.room-info {
+  text-align: center;
+}
+
+.room-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  background: #f8f9fa;
+  padding: 15px 25px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+
+.label {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.code {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #667eea;
+}
+
+.btn-copy {
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.btn-copy:hover {
+  background: #5a67d8;
+}
+
+.room-hint {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  min-width: 200px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+}
+
+.btn-outline {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #667eea;
+  color: white;
+}
+
+/* Sharing Section */
+.sharing-section {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.sharing-section h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.4rem;
+}
+
+.sharing-hint {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Drop Zone */
+.drop-zone {
+  border: 3px dashed #ddd;
+  border-radius: 15px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.drop-zone:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.drop-zone.drag-active {
+  border-color: #4CAF50;
+  background: #e8f5e9;
+  transform: scale(1.02);
+}
+
+.drop-zone-content {
+  pointer-events: none;
+}
+
+.drop-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+  opacity: 0.7;
+}
+
+.drop-text {
+  font-size: 1.3rem;
+  color: #333;
+  margin: 10px 0 5px 0;
+  font-weight: 600;
+}
+
+.drop-hint {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 25px;
+}
+
+.file-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  pointer-events: all;
+}
+
+/* File Sections */
+.available-files,
+.my-shared-files,
+.downloaded-files {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.available-files h2,
+.my-shared-files h2,
+.downloaded-files h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.4rem;
+}
+
+.section-hint {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+/* Files Grid */
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  border: 2px solid #f0f0f0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.file-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.file-card.shared {
+  border-color: #e3f2fd;
+  background: #f8fffe;
+}
+
+.file-card.downloaded {
+  border-color: #e8f5e9;
+  background: #f8fff8;
+}
+
+.file-icon {
+  font-size: 2.5rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.file-time {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.btn-download,
+.btn-redownload {
+  padding: 10px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-download:hover,
+.btn-redownload:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.file-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.shared-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Active Downloads */
+.active-downloads {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+.active-downloads h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.4rem;
+}
+
+.download-item {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+.download-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.download-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.download-details {
+  display: flex;
+  gap: 15px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.download-progress {
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #45a049);
+  transition: width 0.3s ease;
+}
+
+/* Debug Section */
+.debug-section {
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 25px;
+  color: white;
+}
+
+.debug-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+}
+
+.debug-section p {
+  margin: 5px 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Empty State */
+.empty-state {
+  background: white;
+  border-radius: 15px;
+  padding: 40px;
+  margin-bottom: 25px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  border: 2px dashed #e0e0e0;
+}
+
+.empty-state h3 {
+  margin: 0 0 15px 0;
+  color: #666;
+  font-size: 1.3rem;
+}
+
+.empty-state p {
+  color: #999;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Features Section */
+.features-section {
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  padding: 30px;
+  margin-top: 30px;
+}
+
+.features-section h3 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.feature:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  min-width: 50px;
+}
+
+.feature-content {
+  color: white;
+}
+
+.feature-title {
+  font-weight: 600;
+  margin-bottom: 5px;
+  font-size: 1.1rem;
+}
+
+.feature-desc {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ondemand-app {
+    padding: 15px;
+  }
+
+  .app-header h1 {
+    font-size: 2.2rem;
+  }
+
+  .files-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .file-card {
+    padding: 15px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .download-details {
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-end;
+  }
+
+  .connection-controls {
+    padding: 20px;
+  }
+
+  .join-room {
+    flex-direction: column;
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .sharing-section,
+  .available-files,
+  .my-shared-files,
+  .downloaded-files,
+  .active-downloads {
+    padding: 20px;
+  }
+
+  .drop-zone {
+    padding: 30px 20px;
+  }
+
+  .file-buttons {
+    flex-direction: column;
+  }
+
+  .app-header h1 {
+    font-size: 1.8rem;
+  }
+}

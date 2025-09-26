@@ -1,0 +1,326 @@
+/* Maintenance Modal Styles */
+.maintenance-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+  padding: 20px;
+}
+
+.maintenance-modal {
+  background: white;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.4s ease;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.maintenance-header {
+  text-align: center;
+  padding: 30px 25px 20px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+  border-radius: 20px 20px 0 0;
+}
+
+.maintenance-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+  animation: rotate 3s linear infinite;
+}
+
+.maintenance-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.maintenance-subtitle {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* Content */
+.maintenance-content {
+  padding: 30px 25px;
+}
+
+.status-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 25px;
+  font-size: 16px;
+  color: #666;
+}
+
+.pulse-dot {
+  width: 12px;
+  height: 12px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.time-display {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+
+.main-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.timer-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ff6b6b;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+}
+
+.timer-ready {
+  color: #4CAF50;
+  animation: glow 2s infinite;
+}
+
+.status-message {
+  color: #555;
+  font-size: 16px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Retry Section */
+.retry-section {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.auto-retry-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.retry-icon {
+  font-size: 16px;
+  animation: spin 2s linear infinite;
+}
+
+.next-retry {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.retry-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.retry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.retry-btn:active {
+  transform: translateY(0);
+}
+
+.retry-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.retry-btn-icon {
+  font-size: 18px;
+}
+
+/* Last Check */
+.last-check {
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 25px;
+}
+
+/* Maintenance Info */
+.maintenance-info {
+  background: #f0f4ff;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.maintenance-info h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.maintenance-info ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.maintenance-info li {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+  position: relative;
+}
+
+.maintenance-info li:before {
+  content: '•';
+  color: #4CAF50;
+  font-weight: bold;
+  position: absolute;
+  left: -15px;
+}
+
+/* Footer */
+.maintenance-footer {
+  text-align: center;
+  padding: 20px 25px 25px;
+  border-top: 1px solid #e9ecef;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .maintenance-modal {
+    margin: 10px;
+    max-height: 95vh;
+  }
+  
+  .maintenance-header {
+    padding: 25px 20px 15px;
+  }
+  
+  .maintenance-icon {
+    font-size: 50px;
+  }
+  
+  .maintenance-header h2 {
+    font-size: 24px;
+  }
+  
+  .maintenance-content {
+    padding: 25px 20px;
+  }
+  
+  .timer-value {
+    font-size: 28px;
+  }
+  
+  .auto-retry-info {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .retry-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}

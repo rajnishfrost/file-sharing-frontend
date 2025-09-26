@@ -1,0 +1,948 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Prevent mobile zoom on input focus */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  text-align: center;
+  padding: 2rem;
+  color: white;
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.app-header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+.room-manager {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+.room-options {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.option-card {
+  flex: 1;
+  min-width: 250px;
+  text-align: center;
+}
+
+.option-card h3 {
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.option-card p {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.divider {
+  color: #999;
+  font-weight: bold;
+  padding: 0 1rem;
+}
+
+.room-display {
+  text-align: center;
+}
+
+.room-code {
+  display: block;
+  font-size: 1.5rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin: 1rem 0;
+  color: #333;
+  user-select: all;
+}
+
+.room-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.room-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.3s;
+}
+
+.room-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+.file-selector {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.file-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  border: 2px dashed #667eea;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.file-label:hover {
+  border-color: #764ba2;
+  background: #f8f9ff;
+}
+
+.file-label svg {
+  color: #667eea;
+}
+
+.file-label span {
+  color: #333;
+  font-weight: 500;
+}
+
+.selected-file {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8f9ff;
+  border-radius: 8px;
+}
+
+.selected-file p {
+  color: #333;
+  margin: 0.25rem 0;
+}
+
+.progress-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.status-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 12px;
+}
+
+.progress-text {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.received-file {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.received-file h3 {
+  color: #4CAF50;
+  margin-bottom: 1rem;
+}
+
+.received-file p {
+  color: #666;
+  margin: 0.5rem 0;
+}
+
+.received-file .btn-primary {
+  margin-top: 1rem;
+}
+
+.wake-lock-indicator {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  color: #333;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.app-footer {
+  text-align: center;
+  padding: 2rem;
+  color: white;
+  opacity: 0.9;
+}
+
+/* Room Users Component */
+.room-users {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+.room-users h3 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.users-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+.user-item:hover {
+  background: #f5f5f5;
+}
+
+.user-item.current-user {
+  background: #e8f4ff;
+}
+
+.user-item .user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.user-item .user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-item .user-name {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.host-badge {
+  background: #4CAF50;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+/* Shared Files By User Component */
+.shared-files-by-user {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+}
+
+.shared-files-by-user h3 {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.sender-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sender-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.sender-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sender-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.sender-header h4 {
+  flex: 1;
+  margin: 0;
+  color: #333;
+}
+
+.file-count {
+  background: #f5f5f5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.sender-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.file-item:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.file-preview-small {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  flex-shrink: 0;
+}
+
+.file-preview-small img,
+.file-preview-small video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-item .file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-item .file-name {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.25rem;
+}
+
+.download-btn-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #667eea;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.download-btn-small:hover {
+  background: #764ba2;
+}
+
+/* User Name Component */
+.user-info {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 1rem;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.user-card:last-child {
+  margin-bottom: 0;
+}
+
+.user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.connected-user .user-avatar {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.user-details {
+  flex: 1;
+}
+
+.display-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.name {
+  font-weight: 500;
+  color: #333;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0.25rem;
+}
+
+.edit-btn:hover {
+  opacity: 1;
+}
+
+.status {
+  display: block;
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.edit-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.name-input {
+  padding: 0.5rem;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-save, .btn-cancel {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-save {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-cancel {
+  background: #f44336;
+  color: white;
+}
+
+/* Shared Files Component */
+.shared-files {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+}
+
+.shared-files h3 {
+  color: #333;
+  margin-bottom: 1.5rem;
+}
+
+.no-files {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+}
+
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.file-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.file-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.file-preview {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  background: #f5f5f5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.file-preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+}
+
+.file-preview-video {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.file-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.file-details {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+}
+
+.file-date {
+  font-size: 0.7rem;
+  color: #999;
+  margin: 0.5rem 0;
+}
+
+.download-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.download-btn:hover {
+  background: #764ba2;
+}
+
+/* Modal Styles */
+.file-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.modal-preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 300px;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.modal-video {
+  max-width: 100%;
+  max-height: 70vh;
+}
+
+.file-info-modal {
+  text-align: center;
+  color: #666;
+}
+
+.large-file-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  padding: 1rem;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .room-manager,
+  .file-selector,
+  .user-info,
+  .shared-files,
+  .progress-container {
+    padding: 1.5rem;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .room-options {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .option-card {
+    min-width: 100%;
+  }
+
+  .divider {
+    display: none;
+  }
+  
+  .app-header {
+    padding: 1.5rem 1rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .app-header p {
+    font-size: 0.95rem;
+  }
+  
+  .room-code {
+    font-size: 1.1rem;
+    padding: 0.75rem;
+    word-break: break-all;
+  }
+
+  .files-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .file-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+
+  .file-preview {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .file-icon {
+    font-size: 2rem;
+  }
+
+  .user-card {
+    flex-direction: row;
+    text-align: left;
+    gap: 0.75rem;
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .display-name {
+    justify-content: flex-start;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+
+  .room-input {
+    font-size: 0.95rem;
+    padding: 0.6rem;
+  }
+
+  .file-label {
+    padding: 1.5rem;
+  }
+
+  .modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+    margin: 1rem;
+  }
+
+  .app-footer {
+    padding: 1.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .wake-lock-indicator {
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .room-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .room-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .app-main {
+    padding: 0.75rem;
+  }
+
+  .room-manager,
+  .file-selector,
+  .user-info,
+  .shared-files {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .file-card {
+    padding: 0.6rem;
+  }
+
+  .file-preview {
+    width: 60px;
+    height: 60px;
+  }
+
+  .file-name {
+    font-size: 0.85rem;
+  }
+
+  .file-details {
+    font-size: 0.75rem;
+  }
+}

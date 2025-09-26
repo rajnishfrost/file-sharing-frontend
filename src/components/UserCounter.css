@@ -1,0 +1,172 @@
+/* User Counter Component */
+.user-counter {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 15px;
+  margin: 15px 0;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.user-counter.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.counter-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.counter-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.counter-icon {
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  animation: pulse 3s infinite;
+}
+
+.counter-icon.online {
+  animation: blink 2s infinite;
+}
+
+.counter-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.counter-number {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.counter-label {
+  font-size: 12px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.counter-divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.counter-subtitle {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Number animation when it changes */
+.counter-number {
+  transition: all 0.3s ease;
+}
+
+/* Hover effects */
+.user-counter:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+}
+
+.user-counter:hover .counter-icon {
+  transform: scale(1.1);
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .user-counter {
+    padding: 12px 15px;
+    margin: 10px;
+  }
+  
+  .counter-content {
+    gap: 15px;
+  }
+  
+  .counter-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 20px;
+  }
+  
+  .counter-number {
+    font-size: 18px;
+  }
+  
+  .counter-label {
+    font-size: 11px;
+  }
+  
+  .counter-subtitle {
+    font-size: 11px;
+  }
+}
+
+/* Special styles for large numbers */
+.counter-number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gradient animation for the background */
+.user-counter {
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
