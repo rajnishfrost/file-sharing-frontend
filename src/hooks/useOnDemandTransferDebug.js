@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import SimplePeer from 'simple-peer';
+import { adaptiveAgent, applyAdaptiveDelay, getAdaptiveChunkSize } from '../utils/SimpleAdaptiveAgent';
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
@@ -74,6 +75,11 @@ export const useOnDemandTransfer = () => {
 
   const handleControlMessage = (message) => {
     switch (message.type) {
+      case 'adaptive-feedback':
+        // Handle adaptive rate control feedback
+        adaptiveAgent.processFeedback(message);
+        console.log('📊 Processed adaptive feedback:', adaptiveAgent.getStats());
+        break;
       case 'file-metadata':
         console.log('📋 Processing file metadata:', message);
         handleFileMetadata(message);
@@ -190,7 +196,7 @@ export const useOnDemandTransfer = () => {
   // Start uploading file to peer
   const startFileUpload = async (file, request) => {
     const transferId = request.requestId;
-    const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+    const CHUNK_SIZE = getAdaptiveChunkSize(128 * 1024); // Start with 128KB for max speed
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
     console.log(`🚀 Starting upload: ${file.name} (${formatSize(file.size)})`);
@@ -306,7 +312,9 @@ export const useOnDemandTransfer = () => {
           }
         }
 
-        await delay(8); // Longer delay between chunks to prevent loss
+        // Apply adaptive delay based on receiver feedback
+        await applyAdaptiveDelay();
+        await delay(3); // Reduced base delay for max speed
       }
 
       // Send completion
@@ -416,6 +424,25 @@ export const useOnDemandTransfer = () => {
         // Log progress
         if (transfer.receivedChunks % 1000 === 0 || chunkInfo.isLast) {
           console.log(`📥 Download progress: ${transfer.progress.toFixed(1)}% (${formatSpeed(transfer.speed)})`);
+        }
+
+        // Send adaptive feedback every 25 chunks for faster speed optimization
+        if (transfer.receivedChunks % 25 === 0 || chunkInfo.isLast) {
+          try {
+            // Estimate buffer level (pending chunks)
+            const pendingChunks = transfer.totalChunks - transfer.receivedChunks;
+            const feedback = adaptiveAgent.generateFeedback(
+              transfer.bytesReceived,
+              Math.min(pendingChunks, 50) // Simulate buffer pressure
+            );
+            
+            if (peerRef.current && peerRef.current.connected) {
+              peerRef.current.send(JSON.stringify(feedback));
+              console.log(`📊 Feedback: ${(feedback.downloadSpeed/1024/1024).toFixed(1)}MB/s (max: ${(feedback.maxDownloadSpeed/1024/1024).toFixed(1)}MB/s) buffer: ${feedback.bufferLevel} ${feedback.canHandleMore ? '🚀' : '⚠️'}`);
+            }
+          } catch (feedbackError) {
+            console.warn('⚠️ Error sending adaptive feedback:', feedbackError);
+          }
         }
 
         break;
@@ -921,6 +948,7 @@ export const useOnDemandTransfer = () => {
     joinRoom,
     formatSize,
     formatSpeed,
-    formatTime
+    formatTime,
+    getAdaptiveStats: () => adaptiveAgent.getStats() // Get current adaptive stats
   };
 };

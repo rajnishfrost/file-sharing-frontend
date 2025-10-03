@@ -143,7 +143,8 @@ const SimpleFileApp = () => {
             borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: '600'
+            fontWeight: '600',
+            marginRight: '10px'
           }}
         >
           📱 Add to Home
@@ -294,6 +295,7 @@ const SimpleFileApp = () => {
           </div>
         </div>
       )}
+
       {/* Header */}
       <div className="header">
         <h1>📡 File Transfer</h1>
