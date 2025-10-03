@@ -6,14 +6,14 @@
 
 class SimpleAdaptiveAgent {
   constructor() {
-    // Current transfer parameters - Start high but stable
-    this.chunkSize = 65536; // Start with 64KB for good speed + stability
-    this.sendDelay = 2; // Small initial delay for stability
+    // Current transfer parameters - Start conservative for capacity testing
+    this.chunkSize = 32768; // Start with 32KB for capacity testing
+    this.sendDelay = 5; // Initial delay for testing
     
-    // Limits - Balanced for speed and stability
-    this.minChunkSize = 16384; // 16KB minimum
-    this.maxChunkSize = 131072; // 128KB maximum
-    this.maxSendDelay = 50; // Higher max delay for stability
+    // Limits - Wide range for capacity testing
+    this.minChunkSize = 8192; // 8KB minimum
+    this.maxChunkSize = 262144; // 256KB maximum for testing
+    this.maxSendDelay = 100; // Higher max delay for stability
     
     // Performance metrics
     this.bufferLevel = 0;
@@ -23,14 +23,23 @@ class SimpleAdaptiveAgent {
     this.maxObservedDownloadSpeed = 0;
     this.targetDownloadSpeed = 0;
     
+    // Dynamic capacity testing
+    this.capacityTesting = true;
+    this.testPhase = 'ramping'; // ramping, stable, optimizing
+    this.rampSteps = 0;
+    this.maxStableChunkSize = 32768;
+    this.maxStableSpeed = 0;
+    this.consecutiveStableReadings = 0;
+    this.bufferStressTest = false;
+    
     // Speed optimization
     this.speedHistory = [];
-    this.maxHistorySize = 10;
+    this.maxHistorySize = 15;
     this.isOptimizing = true;
     
     // Device detection
     this.deviceType = this.detectDevice();
-    console.log(`📱 Device detected: ${this.deviceType} - Starting speed optimization`);
+    console.log(`📱 Device detected: ${this.deviceType} - Starting dynamic capacity testing`);
   }
   
   detectDevice() {
@@ -69,31 +78,16 @@ class SimpleAdaptiveAgent {
     }
     
     // Calculate buffer pressure more accurately
-    const bufferPressure = Math.min(this.bufferLevel / 25, 1.0); // Use realistic max buffer of 25 chunks
+    const bufferPressure = Math.min(this.bufferLevel / 20, 1.0); // Use realistic max buffer of 20 chunks
     const speedTrend = this.getSpeedTrend();
+    const currentSpeedMbps = this.downloadSpeed / 1024 / 1024;
     
-    // BALANCED SPEED AND STABILITY STRATEGY
-    if (bufferPressure > 0.8) {
-      // Reduce speed when buffer is getting full (more conservative)
-      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.9);
-      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 8);
-      console.log(`⚠️ High buffer pressure at ${(bufferPressure * 100).toFixed(0)}% - reducing speed for stability`);
-    } else if (bufferPressure < 0.4 && speedTrend >= -0.1) {
-      // Increase speed when buffer has plenty of room and speed is stable
-      if (this.chunkSize < this.maxChunkSize) {
-        this.chunkSize = Math.min(this.maxChunkSize, this.chunkSize * 1.1);
-        console.log(`🚀 Increasing chunk size: ${this.chunkSize} bytes`);
-      }
-      if (this.sendDelay > 2) {
-        this.sendDelay = Math.max(2, this.sendDelay - 3);
-        console.log(`⚡ Reducing delay: ${this.sendDelay}ms`);
-      }
-      console.log(`🚀 Optimizing speed - buffer: ${(bufferPressure * 100).toFixed(0)}%, chunk: ${this.chunkSize}, delay: ${this.sendDelay}ms`);
-    } else if (speedTrend < -0.3) {
-      // Speed declining significantly - be more conservative
-      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.95);
-      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 5);
-      console.log(`📉 Speed declining - backing off for stability (${(this.downloadSpeed / 1024 / 1024).toFixed(2)} MB/s)`);
+    // DYNAMIC CAPACITY TESTING STRATEGY
+    if (this.capacityTesting) {
+      this.performCapacityTest(bufferPressure, speedTrend, currentSpeedMbps);
+    } else {
+      // Use established optimal parameters
+      this.maintainOptimalSpeed(bufferPressure, speedTrend, currentSpeedMbps);
     }
     
     // Set target download speed (aim for 90% of max observed)
@@ -111,6 +105,124 @@ class SimpleAdaptiveAgent {
     const avg2 = (recent[1] + recent[2]) / 2;
     
     return (avg2 - avg1) / avg1; // Percentage change
+  }
+  
+  // Perform dynamic capacity testing
+  performCapacityTest(bufferPressure, speedTrend, currentSpeedMbps) {
+    switch (this.testPhase) {
+      case 'ramping':
+        this.performRampingTest(bufferPressure, speedTrend, currentSpeedMbps);
+        break;
+      case 'stable':
+        this.performStabilityTest(bufferPressure, speedTrend, currentSpeedMbps);
+        break;
+      case 'optimizing':
+        this.performOptimizationTest(bufferPressure, speedTrend, currentSpeedMbps);
+        break;
+    }
+  }
+  
+  // Phase 1: Gradually increase throughput to find limits
+  performRampingTest(bufferPressure, speedTrend, currentSpeedMbps) {
+    // If buffer is getting stressed, we found a limit
+    if (bufferPressure > 0.7 || speedTrend < -0.2) {
+      console.log(`🔍 Capacity limit detected at ${this.chunkSize} bytes, ${currentSpeedMbps.toFixed(1)} MB/s`);
+      this.maxStableChunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.8);
+      this.maxStableSpeed = this.downloadSpeed * 0.9;
+      this.testPhase = 'stable';
+      this.consecutiveStableReadings = 0;
+      
+      // Back off from the limit
+      this.chunkSize = this.maxStableChunkSize;
+      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 10);
+      return;
+    }
+    
+    // If connection is stable, keep ramping up
+    if (bufferPressure < 0.3 && speedTrend >= -0.1) {
+      this.rampSteps++;
+      
+      if (this.rampSteps % 3 === 0) { // Every 3 feedback cycles
+        // Increase chunk size
+        if (this.chunkSize < this.maxChunkSize) {
+          this.chunkSize = Math.min(this.maxChunkSize, this.chunkSize * 1.25);
+          console.log(`🚀 Ramping up: chunk size ${this.chunkSize} bytes`);
+        }
+        
+        // Decrease delay
+        if (this.sendDelay > 0) {
+          this.sendDelay = Math.max(0, this.sendDelay - 2);
+          console.log(`⚡ Ramping up: delay ${this.sendDelay}ms`);
+        }
+      }
+      
+      // If we've reached maximum parameters, move to stability testing
+      if (this.chunkSize >= this.maxChunkSize && this.sendDelay <= 1) {
+        console.log(`📊 Maximum parameters reached, testing stability...`);
+        this.testPhase = 'stable';
+        this.maxStableChunkSize = this.chunkSize;
+        this.maxStableSpeed = this.downloadSpeed;
+      }
+    }
+  }
+  
+  // Phase 2: Test stability at current parameters
+  performStabilityTest(bufferPressure, speedTrend, currentSpeedMbps) {
+    // Check if current settings are stable
+    if (bufferPressure < 0.6 && speedTrend >= -0.15 && currentSpeedMbps > 0) {
+      this.consecutiveStableReadings++;
+      
+      if (this.consecutiveStableReadings >= 5) {
+        console.log(`✅ Stable configuration found: ${this.chunkSize} bytes, ${currentSpeedMbps.toFixed(1)} MB/s`);
+        this.testPhase = 'optimizing';
+        this.capacityTesting = false; // Move to optimization mode
+        this.maxStableChunkSize = this.chunkSize;
+        this.maxStableSpeed = this.downloadSpeed;
+      }
+    } else {
+      // Not stable, reduce and test again
+      console.log(`⚠️ Instability detected, reducing parameters...`);
+      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.9);
+      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 5);
+      this.consecutiveStableReadings = 0;
+      
+      // If we've reduced too much, restart ramping
+      if (this.chunkSize <= this.minChunkSize * 1.5) {
+        console.log(`🔄 Restarting capacity test from lower baseline...`);
+        this.testPhase = 'ramping';
+        this.rampSteps = 0;
+      }
+    }
+  }
+  
+  // Phase 3: Fine-tune optimal parameters
+  performOptimizationTest(bufferPressure, speedTrend, currentSpeedMbps) {
+    // This becomes our normal optimization mode
+    this.maintainOptimalSpeed(bufferPressure, speedTrend, currentSpeedMbps);
+  }
+  
+  // Maintain optimal speed using discovered parameters
+  maintainOptimalSpeed(bufferPressure, speedTrend, currentSpeedMbps) {
+    if (bufferPressure > 0.8) {
+      // Emergency brake
+      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.85);
+      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 10);
+      console.log(`🚨 Emergency brake: buffer ${(bufferPressure * 100).toFixed(0)}%`);
+    } else if (bufferPressure < 0.3 && speedTrend >= 0) {
+      // Gentle optimization towards max stable parameters
+      if (this.chunkSize < this.maxStableChunkSize) {
+        this.chunkSize = Math.min(this.maxStableChunkSize, this.chunkSize * 1.05);
+      }
+      if (this.sendDelay > 1) {
+        this.sendDelay = Math.max(1, this.sendDelay - 1);
+      }
+      console.log(`🎯 Optimizing: ${currentSpeedMbps.toFixed(1)} MB/s, chunk: ${this.chunkSize}`);
+    } else if (speedTrend < -0.25) {
+      // Speed declining, back off slightly
+      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.95);
+      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 3);
+      console.log(`📉 Speed declining, adjusting...`);
+    }
   }
   
   // Generate feedback message for sender
@@ -157,7 +269,14 @@ class SimpleAdaptiveAgent {
       targetDownloadSpeed: this.targetDownloadSpeed,
       speedEfficiency: this.maxObservedDownloadSpeed > 0 ? 
         (this.downloadSpeed / this.maxObservedDownloadSpeed * 100).toFixed(1) + '%' : '0%',
-      optimizationActive: this.isOptimizing
+      optimizationActive: this.isOptimizing,
+      // Dynamic capacity testing stats
+      capacityTesting: this.capacityTesting,
+      testPhase: this.testPhase,
+      maxStableChunkSize: this.maxStableChunkSize,
+      maxStableSpeed: this.maxStableSpeed,
+      rampSteps: this.rampSteps,
+      stableReadings: this.consecutiveStableReadings
     };
   }
 }
