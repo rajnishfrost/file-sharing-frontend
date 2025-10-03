@@ -6,13 +6,17 @@
 
 class SimpleAdaptiveAgent {
   constructor() {
-    // CONSTANT 1 MBPS STRATEGY - Simple and Equal
+    // CONSTANT SPEED STRATEGY - 1 Mbps Upload, 2 Mbps Download
     
-    // Fixed speed target: 1 Mbps = 1,048,576 bytes per second
-    this.targetSpeed = 1 * 1024 * 1024; // 1 Mbps in bytes/second
-    this.targetSpeedMbps = 1; // 1 Mbps
+    // Fixed upload speed: 1 Mbps = 1,048,576 bytes per second
+    this.uploadTargetSpeed = 1 * 1024 * 1024; // 1 Mbps in bytes/second
+    this.uploadSpeedMbps = 1; // 1 Mbps
     
-    // Calculate optimal parameters for 1 Mbps
+    // Fixed download speed target: 2 Mbps = 2,097,152 bytes per second
+    this.downloadTargetSpeed = 2 * 1024 * 1024; // 2 Mbps in bytes/second
+    this.downloadSpeedMbps = 2; // 2 Mbps
+    
+    // Calculate optimal parameters for 1 Mbps upload
     this.uploadChunkSize = 32768; // 32KB chunks for smooth 1 Mbps
     this.uploadDelay = this.calculateDelayFor1Mbps(); // Calculated delay for exactly 1 Mbps
     
@@ -24,10 +28,10 @@ class SimpleAdaptiveAgent {
     // Performance metrics (for display only)
     this.bufferLevel = 0;
     this.lastFeedbackTime = Date.now();
-    this.uploadSpeed = this.targetSpeed;
-    this.downloadSpeed = this.targetSpeed;
-    this.maxObservedDownloadSpeed = this.targetSpeed;
-    this.targetDownloadSpeed = this.targetSpeed;
+    this.uploadSpeed = this.uploadTargetSpeed;
+    this.downloadSpeed = this.downloadTargetSpeed;
+    this.maxObservedDownloadSpeed = this.downloadTargetSpeed;
+    this.targetDownloadSpeed = this.downloadTargetSpeed;
     
     // Speed monitoring (minimal)
     this.speedHistory = [];
@@ -35,7 +39,7 @@ class SimpleAdaptiveAgent {
     
     // Device detection
     this.deviceType = this.detectDevice();
-    console.log(`📱 Device detected: ${this.deviceType} - Using constant 1 Mbps for upload and download`);
+    console.log(`📱 Device detected: ${this.deviceType} - Using constant 1 Mbps upload, 2 Mbps download`);
   }
   
   detectDevice() {
@@ -50,24 +54,25 @@ class SimpleAdaptiveAgent {
     return 'Desktop';
   }
   
-  // Calculate exact delay needed for 1 Mbps with 32KB chunks
+  // Calculate exact delay needed for 1 Mbps upload with 32KB chunks
   calculateDelayFor1Mbps() {
-    // Target: 1 Mbps = 1,048,576 bytes/second
+    // Target: 1 Mbps upload = 1,048,576 bytes/second
     // Chunk size: 32KB = 32,768 bytes
     // Required chunks per second: 1,048,576 / 32,768 = 32 chunks/second
     // Time per chunk: 1000ms / 32 = 31.25ms
     // Accounting for processing overhead (~6ms), delay = 31.25 - 6 = 25.25ms
     
-    const chunksPerSecond = this.targetSpeed / this.uploadChunkSize;
+    const chunksPerSecond = this.uploadTargetSpeed / this.uploadChunkSize;
     const timePerChunk = 1000 / chunksPerSecond; // milliseconds
     const processingOverhead = 6; // estimated processing time
     const requiredDelay = Math.max(0, timePerChunk - processingOverhead);
     
-    console.log(`🎯 Calculated for 1 Mbps: ${chunksPerSecond.toFixed(1)} chunks/sec, ${timePerChunk.toFixed(1)}ms per chunk, ${requiredDelay.toFixed(1)}ms delay`);
+    console.log(`🎯 Upload calculated for 1 Mbps: ${chunksPerSecond.toFixed(1)} chunks/sec, ${timePerChunk.toFixed(1)}ms per chunk, ${requiredDelay.toFixed(1)}ms delay`);
+    console.log(`📊 Download target: 2 Mbps (receiver will process at this speed)`);
     return requiredDelay;
   }
   
-  // Process feedback from receiver - CONSTANT 1 MBPS MODE
+  // Process feedback from receiver - CONSTANT SPEED MODE
   processFeedback(feedback) {
     // Update metrics for display only
     if (feedback.bufferLevel !== undefined) {
@@ -90,10 +95,10 @@ class SimpleAdaptiveAgent {
     const currentDownloadMbps = (this.downloadSpeed / 1024 / 1024).toFixed(1);
     const bufferChunks = this.bufferLevel;
     
-    console.log(`📊 CONSTANT 1 MBPS - Upload: 1.0 MB/s | Download: ${currentDownloadMbps} MB/s | Buffer: ${bufferChunks} chunks`);
+    console.log(`📊 CONSTANT SPEEDS - Upload: 1.0 MB/s | Download: ${currentDownloadMbps} MB/s (target: 2.0 MB/s) | Buffer: ${bufferChunks} chunks`);
     
-    // No parameter changes - always maintain 1 Mbps settings
-    // Upload parameters remain constant
+    // No parameter changes - always maintain 1 Mbps upload settings
+    // Upload parameters remain constant at 1 Mbps
   }
   
   // Reset for new transfer - CONSTANT MODE
@@ -101,7 +106,7 @@ class SimpleAdaptiveAgent {
     // Reset basic metrics but keep constant parameters
     this.bufferLevel = 0;
     this.speedHistory = [];
-    console.log(`🔄 New transfer starting - Maintaining constant 1 Mbps`);
+    console.log(`🔄 New transfer starting - Maintaining 1 Mbps upload, 2 Mbps download target`);
   }
   
   // Legacy method compatibility
@@ -153,24 +158,25 @@ class SimpleAdaptiveAgent {
     return true; // Always apply delay for constant 1 Mbps
   }
   
-  // Update stats for display - CONSTANT MODE
+  // Update stats for display - CONSTANT SPEED MODE
   getStats() {
     return {
       chunkSize: this.getChunkSize(),
       sendDelay: this.getSendDelay(),
       bufferLevel: this.bufferLevel,
       deviceType: this.deviceType,
-      uploadSpeed: this.targetSpeed, // Always 1 Mbps
+      uploadSpeed: this.uploadTargetSpeed, // Always 1 Mbps
       downloadSpeed: this.downloadSpeed,
-      maxDownloadSpeed: this.targetSpeed, // Target 1 Mbps
-      targetDownloadSpeed: this.targetSpeed, // Always 1 Mbps
+      maxDownloadSpeed: this.downloadTargetSpeed, // Target 2 Mbps
+      targetDownloadSpeed: this.downloadTargetSpeed, // Always 2 Mbps
       speedEfficiency: '100%', // Always optimal for constant mode
       optimizationActive: false,
       // Constant mode stats
-      targetSpeedMbps: this.targetSpeedMbps,
+      uploadSpeedMbps: this.uploadSpeedMbps,
+      downloadSpeedMbps: this.downloadSpeedMbps,
       constantMode: this.constantMode,
       calculatedDelay: this.uploadDelay.toFixed(1) + 'ms',
-      mode: 'Constant 1 Mbps Mode'
+      mode: 'Constant Speeds: 1 Mbps Upload, 2 Mbps Download'
     };
   }
 }
