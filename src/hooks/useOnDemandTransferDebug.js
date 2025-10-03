@@ -196,10 +196,14 @@ export const useOnDemandTransfer = () => {
   // Start uploading file to peer
   const startFileUpload = async (file, request) => {
     const transferId = request.requestId;
+    
+    // Reset adaptive agent for new transfer
+    adaptiveAgent.resetForNewTransfer();
+    
     const CHUNK_SIZE = getAdaptiveChunkSize(131072); // Use adaptive chunk size, defaulting to 128KB max
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
-    console.log(`🚀 Starting upload: ${file.name} (${formatSize(file.size)})`);
+    console.log(`🚀 Starting upload: ${file.name} (${formatSize(file.size)}) - Two-phase strategy`);
 
     try {
       // Send download start confirmation
@@ -237,6 +241,15 @@ export const useOnDemandTransfer = () => {
         if (!peerRef.current || !peerRef.current.connected) {
           throw new Error('Peer disconnected during upload');
         }
+        
+        // Check if upload should be paused (adaptive agent will set chunk size to 0)
+        const currentChunkSize = getAdaptiveChunkSize(CHUNK_SIZE);
+        if (currentChunkSize === 0) {
+          console.log(`⏸️ Upload paused at chunk ${chunkIndex} - waiting for phase transition...`);
+          await delay(100); // Wait 100ms and check again
+          chunkIndex--; // Retry this chunk
+          continue;
+        }
 
         // Wait for buffer to clear with timeout and connection check
         try {
@@ -252,8 +265,8 @@ export const useOnDemandTransfer = () => {
           await delay(200); // Give extra time for connection to recover
         }
 
-        // Read chunk
-        const chunk = await readFileChunk(file, offset, CHUNK_SIZE);
+        // Read chunk using current adaptive size
+        const chunk = await readFileChunk(file, offset, currentChunkSize);
 
         // Send chunk header
         peerRef.current.send(JSON.stringify({
@@ -447,7 +460,8 @@ export const useOnDemandTransfer = () => {
             
             if (peerRef.current && peerRef.current.connected) {
               peerRef.current.send(JSON.stringify(feedback));
-              console.log(`📊 Download: ${(feedback.downloadSpeed/1024/1024).toFixed(1)}MB/s | Upload using: ${adaptiveAgent.getChunkSize()/1024}KB chunks, ${adaptiveAgent.getSendDelay()}ms delay | Buffer: ${feedback.bufferLevel}`);
+              const stats = adaptiveAgent.getStats();
+              console.log(`📊 Phase: ${stats.transferPhase} | Download: ${(feedback.downloadSpeed/1024/1024).toFixed(1)}MB/s | Upload: ${stats.chunkSize/1024}KB, ${stats.sendDelay}ms | Buffer: ${feedback.bufferLevel}`);
             }
           } catch (feedbackError) {
             console.warn('⚠️ Error sending adaptive feedback:', feedbackError);
