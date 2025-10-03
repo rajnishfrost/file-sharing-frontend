@@ -434,8 +434,8 @@ export const useOnDemandTransfer = () => {
           console.log(`📥 Download progress: ${transfer.progress.toFixed(1)}% (${formatSpeed(transfer.speed)})`);
         }
 
-        // Send adaptive feedback every 15 chunks for capacity testing
-        if (transfer.receivedChunks % 15 === 0 || chunkInfo.isLast) {
+        // Send feedback every 50 chunks - much less frequent to avoid interference 
+        if (transfer.receivedChunks % 50 === 0 || chunkInfo.isLast) {
           try {
             // Estimate buffer level (realistic simulation)
             const pendingChunks = Math.max(0, transfer.totalChunks - transfer.receivedChunks);
@@ -447,8 +447,7 @@ export const useOnDemandTransfer = () => {
             
             if (peerRef.current && peerRef.current.connected) {
               peerRef.current.send(JSON.stringify(feedback));
-              const stats = adaptiveAgent.getStats();
-              console.log(`📊 Speed: ${(feedback.downloadSpeed/1024/1024).toFixed(1)}MB/s | Phase: ${stats.testPhase} | Chunk: ${stats.chunkSize/1024}KB | Buffer: ${feedback.bufferLevel} ${feedback.canHandleMore ? '🚀' : '⚠️'}`);
+              console.log(`📊 Download: ${(feedback.downloadSpeed/1024/1024).toFixed(1)}MB/s | Upload using: ${adaptiveAgent.getChunkSize()/1024}KB chunks, ${adaptiveAgent.getSendDelay()}ms delay | Buffer: ${feedback.bufferLevel}`);
             }
           } catch (feedbackError) {
             console.warn('⚠️ Error sending adaptive feedback:', feedbackError);
