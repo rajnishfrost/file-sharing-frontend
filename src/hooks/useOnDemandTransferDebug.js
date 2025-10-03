@@ -238,12 +238,18 @@ export const useOnDemandTransfer = () => {
           throw new Error('Peer disconnected during upload');
         }
 
-        // Wait for buffer to clear with timeout
+        // Wait for buffer to clear with timeout and connection check
         try {
           await waitForBuffer(peerRef.current);
         } catch (bufferError) {
-          console.warn('⚠️ Buffer timeout, but continuing transfer...');
-          await delay(100); // Give extra time
+          console.warn('⚠️ Buffer timeout, checking connection...');
+          
+          // Check if connection is still alive
+          if (!peerRef.current || !peerRef.current.connected) {
+            throw new Error('Connection lost during buffer wait');
+          }
+          
+          await delay(200); // Give extra time for connection to recover
         }
 
         // Read chunk
@@ -258,7 +264,7 @@ export const useOnDemandTransfer = () => {
           isLast: chunkIndex === totalChunks - 1
         }));
 
-        await delay(5); // Minimal delay for max speed
+        await delay(10); // Small delay for connection stability
 
         // Send chunk data with retry logic
         let retries = 0;
@@ -298,23 +304,25 @@ export const useOnDemandTransfer = () => {
           console.log(`📤 Upload progress: ${progress.toFixed(1)}% (${formatSpeed(speed)})`);
         }
 
-        // Send keepalive every 50 chunks to maintain connection
-        if (chunkIndex % 50 === 0 && chunkIndex > 0) {
+        // Send keepalive every 25 chunks to maintain connection (more frequent)
+        if (chunkIndex % 25 === 0 && chunkIndex > 0) {
           try {
             console.log(`💓 Sending keepalive at chunk ${chunkIndex}`);
             peerRef.current.send(JSON.stringify({ 
               type: 'keepalive', 
               transferId: transferId,
-              chunkIndex: chunkIndex 
+              chunkIndex: chunkIndex,
+              bufferAmount: peerRef.current.bufferedAmount || 0
             }));
           } catch (keepaliveError) {
-            console.warn('⚠️ Keepalive failed, but continuing...');
+            console.warn('⚠️ Keepalive failed - connection may be unstable');
+            throw new Error('Connection unstable during transfer');
           }
         }
 
         // Apply adaptive delay based on receiver feedback
         await applyAdaptiveDelay();
-        // NO base delay for maximum speed
+        await delay(2); // Minimal base delay for stability
       }
 
       // Send completion
@@ -426,8 +434,8 @@ export const useOnDemandTransfer = () => {
           console.log(`📥 Download progress: ${transfer.progress.toFixed(1)}% (${formatSpeed(transfer.speed)})`);
         }
 
-        // Send adaptive feedback every 10 chunks for maximum speed optimization
-        if (transfer.receivedChunks % 10 === 0 || chunkInfo.isLast) {
+        // Send adaptive feedback every 20 chunks for balanced optimization
+        if (transfer.receivedChunks % 20 === 0 || chunkInfo.isLast) {
           try {
             // Estimate buffer level (realistic simulation)
             const pendingChunks = Math.max(0, transfer.totalChunks - transfer.receivedChunks);
@@ -768,10 +776,10 @@ export const useOnDemandTransfer = () => {
     });
   };
 
-  const waitForBuffer = (peer, threshold = 64 * 1024) => {
+  const waitForBuffer = (peer, threshold = 32 * 1024) => {
     return new Promise((resolve, reject) => {
       let attempts = 0;
-      const maxAttempts = 200; // 10 seconds max wait
+      const maxAttempts = 100; // 5 seconds max wait
       
       const checkBuffer = () => {
         if (!peer || !peer.connected) {
@@ -785,7 +793,8 @@ export const useOnDemandTransfer = () => {
         if (bufferAmount < threshold) {
           resolve();
         } else if (attempts >= maxAttempts) {
-          reject(new Error('Buffer timeout - connection may be unstable'));
+          console.warn(`⚠️ Buffer still at ${bufferAmount} bytes after ${attempts} attempts - continuing anyway`);
+          resolve(); // Don't reject, just continue
         } else {
           setTimeout(checkBuffer, 50);
         }

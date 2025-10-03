@@ -6,14 +6,14 @@
 
 class SimpleAdaptiveAgent {
   constructor() {
-    // Current transfer parameters - Start at MAXIMUM for best speed
-    this.chunkSize = 131072; // Start with 128KB (maximum) for instant max speed
-    this.sendDelay = 0; // NO delay initially
+    // Current transfer parameters - Start high but stable
+    this.chunkSize = 65536; // Start with 64KB for good speed + stability
+    this.sendDelay = 2; // Small initial delay for stability
     
-    // Limits - More aggressive ranges
+    // Limits - Balanced for speed and stability
     this.minChunkSize = 16384; // 16KB minimum
     this.maxChunkSize = 131072; // 128KB maximum
-    this.maxSendDelay = 25; // Lower max delay for faster recovery
+    this.maxSendDelay = 50; // Higher max delay for stability
     
     // Performance metrics
     this.bufferLevel = 0;
@@ -69,27 +69,31 @@ class SimpleAdaptiveAgent {
     }
     
     // Calculate buffer pressure more accurately
-    const bufferPressure = Math.min(this.bufferLevel / 30, 1.0); // Use realistic max buffer of 30 chunks
+    const bufferPressure = Math.min(this.bufferLevel / 25, 1.0); // Use realistic max buffer of 25 chunks
     const speedTrend = this.getSpeedTrend();
     
-    // MAXIMUM SPEED STRATEGY - prioritize speed over everything
-    if (bufferPressure > 0.9) {
-      // Only reduce speed when buffer is completely overwhelmed
-      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.85);
-      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 5);
-      console.log(`🚨 Buffer overwhelmed at ${(bufferPressure * 100).toFixed(0)}% - minor speed reduction`);
-    } else {
-      // ALWAYS try to maximize speed when buffer has ANY room
+    // BALANCED SPEED AND STABILITY STRATEGY
+    if (bufferPressure > 0.8) {
+      // Reduce speed when buffer is getting full (more conservative)
+      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.9);
+      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 8);
+      console.log(`⚠️ High buffer pressure at ${(bufferPressure * 100).toFixed(0)}% - reducing speed for stability`);
+    } else if (bufferPressure < 0.4 && speedTrend >= -0.1) {
+      // Increase speed when buffer has plenty of room and speed is stable
       if (this.chunkSize < this.maxChunkSize) {
-        this.chunkSize = Math.min(this.maxChunkSize, this.chunkSize * 1.2);
-        console.log(`🚀 Increasing to max chunk size: ${this.chunkSize} bytes`);
+        this.chunkSize = Math.min(this.maxChunkSize, this.chunkSize * 1.1);
+        console.log(`🚀 Increasing chunk size: ${this.chunkSize} bytes`);
       }
-      // ALWAYS minimize delay
-      if (this.sendDelay > 0) {
-        this.sendDelay = Math.max(0, this.sendDelay - 2);
+      if (this.sendDelay > 2) {
+        this.sendDelay = Math.max(2, this.sendDelay - 3);
         console.log(`⚡ Reducing delay: ${this.sendDelay}ms`);
       }
-      console.log(`🚀 MAX SPEED MODE - buffer: ${(bufferPressure * 100).toFixed(0)}%, chunk: ${this.chunkSize}, delay: ${this.sendDelay}ms`);
+      console.log(`🚀 Optimizing speed - buffer: ${(bufferPressure * 100).toFixed(0)}%, chunk: ${this.chunkSize}, delay: ${this.sendDelay}ms`);
+    } else if (speedTrend < -0.3) {
+      // Speed declining significantly - be more conservative
+      this.chunkSize = Math.max(this.minChunkSize, this.chunkSize * 0.95);
+      this.sendDelay = Math.min(this.maxSendDelay, this.sendDelay + 5);
+      console.log(`📉 Speed declining - backing off for stability (${(this.downloadSpeed / 1024 / 1024).toFixed(2)} MB/s)`);
     }
     
     // Set target download speed (aim for 90% of max observed)
