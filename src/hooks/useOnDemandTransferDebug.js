@@ -196,7 +196,7 @@ export const useOnDemandTransfer = () => {
   // Start uploading file to peer
   const startFileUpload = async (file, request) => {
     const transferId = request.requestId;
-    const CHUNK_SIZE = getAdaptiveChunkSize(128 * 1024); // Start with 128KB for max speed
+    const CHUNK_SIZE = getAdaptiveChunkSize(131072); // Use adaptive chunk size, defaulting to 128KB max
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
     console.log(`🚀 Starting upload: ${file.name} (${formatSize(file.size)})`);
@@ -258,7 +258,7 @@ export const useOnDemandTransfer = () => {
           isLast: chunkIndex === totalChunks - 1
         }));
 
-        await delay(15); // Longer delay to prevent chunk loss
+        await delay(5); // Minimal delay for max speed
 
         // Send chunk data with retry logic
         let retries = 0;
@@ -314,7 +314,7 @@ export const useOnDemandTransfer = () => {
 
         // Apply adaptive delay based on receiver feedback
         await applyAdaptiveDelay();
-        await delay(3); // Reduced base delay for max speed
+        // NO base delay for maximum speed
       }
 
       // Send completion
@@ -426,14 +426,15 @@ export const useOnDemandTransfer = () => {
           console.log(`📥 Download progress: ${transfer.progress.toFixed(1)}% (${formatSpeed(transfer.speed)})`);
         }
 
-        // Send adaptive feedback every 25 chunks for faster speed optimization
-        if (transfer.receivedChunks % 25 === 0 || chunkInfo.isLast) {
+        // Send adaptive feedback every 10 chunks for maximum speed optimization
+        if (transfer.receivedChunks % 10 === 0 || chunkInfo.isLast) {
           try {
-            // Estimate buffer level (pending chunks)
-            const pendingChunks = transfer.totalChunks - transfer.receivedChunks;
+            // Estimate buffer level (realistic simulation)
+            const pendingChunks = Math.max(0, transfer.totalChunks - transfer.receivedChunks);
+            const currentBufferLevel = Math.min(pendingChunks, 20); // Realistic buffer of max 20 chunks
             const feedback = adaptiveAgent.generateFeedback(
               transfer.bytesReceived,
-              Math.min(pendingChunks, 50) // Simulate buffer pressure
+              currentBufferLevel
             );
             
             if (peerRef.current && peerRef.current.connected) {
