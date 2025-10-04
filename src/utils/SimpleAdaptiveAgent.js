@@ -6,15 +6,15 @@
 
 class SimpleAdaptiveAgent {
   constructor() {
-    // CONSTANT SPEED STRATEGY - 1 Mbps Upload, 2 Mbps Download
+    // CONSTANT UPLOAD SPEED STRATEGY - 1 Mbps Upload, Unlimited Download
     
     // Fixed upload speed: 1 Mbps = 1,048,576 bytes per second
     this.uploadTargetSpeed = 1 * 1024 * 1024; // 1 Mbps in bytes/second
     this.uploadSpeedMbps = 1; // 1 Mbps
     
-    // Fixed download speed target: 2 Mbps = 2,097,152 bytes per second
-    this.downloadTargetSpeed = 2 * 1024 * 1024; // 2 Mbps in bytes/second
-    this.downloadSpeedMbps = 2; // 2 Mbps
+    // Unlimited download speed - no target limit
+    this.downloadTargetSpeed = Infinity; // No download limit
+    this.downloadSpeedMbps = 'Unlimited'; // No speed cap
     
     // Calculate optimal parameters for 1 Mbps upload
     this.uploadChunkSize = 32768; // 32KB chunks for smooth 1 Mbps
@@ -29,9 +29,9 @@ class SimpleAdaptiveAgent {
     this.bufferLevel = 0;
     this.lastFeedbackTime = Date.now();
     this.uploadSpeed = this.uploadTargetSpeed;
-    this.downloadSpeed = this.downloadTargetSpeed;
-    this.maxObservedDownloadSpeed = this.downloadTargetSpeed;
-    this.targetDownloadSpeed = this.downloadTargetSpeed;
+    this.downloadSpeed = 0;
+    this.maxObservedDownloadSpeed = 0;
+    this.targetDownloadSpeed = Infinity;
     
     // Speed monitoring (minimal)
     this.speedHistory = [];
@@ -39,7 +39,7 @@ class SimpleAdaptiveAgent {
     
     // Device detection
     this.deviceType = this.detectDevice();
-    console.log(`📱 Device detected: ${this.deviceType} - Using constant 1 Mbps upload, 2 Mbps download`);
+    console.log(`📱 Device detected: ${this.deviceType} - Using constant 1 Mbps upload, unlimited download`);
   }
   
   detectDevice() {
@@ -68,7 +68,7 @@ class SimpleAdaptiveAgent {
     const requiredDelay = Math.max(0, timePerChunk - processingOverhead);
     
     console.log(`🎯 Upload calculated for 1 Mbps: ${chunksPerSecond.toFixed(1)} chunks/sec, ${timePerChunk.toFixed(1)}ms per chunk, ${requiredDelay.toFixed(1)}ms delay`);
-    console.log(`📊 Download target: 2 Mbps (receiver will process at this speed)`);
+    console.log(`📊 Download speed: Unlimited (no speed cap on downloads)`);
     return requiredDelay;
   }
   
@@ -95,7 +95,7 @@ class SimpleAdaptiveAgent {
     const currentDownloadMbps = (this.downloadSpeed / 1024 / 1024).toFixed(1);
     const bufferChunks = this.bufferLevel;
     
-    console.log(`📊 CONSTANT SPEEDS - Upload: 1.0 MB/s | Download: ${currentDownloadMbps} MB/s (target: 2.0 MB/s) | Buffer: ${bufferChunks} chunks`);
+    console.log(`📊 SPEEDS - Upload: 1.0 MB/s (limited) | Download: ${currentDownloadMbps} MB/s (unlimited) | Buffer: ${bufferChunks} chunks`);
     
     // No parameter changes - always maintain 1 Mbps upload settings
     // Upload parameters remain constant at 1 Mbps
@@ -106,7 +106,7 @@ class SimpleAdaptiveAgent {
     // Reset basic metrics but keep constant parameters
     this.bufferLevel = 0;
     this.speedHistory = [];
-    console.log(`🔄 New transfer starting - Maintaining 1 Mbps upload, 2 Mbps download target`);
+    console.log(`🔄 New transfer starting - Maintaining 1 Mbps upload limit, unlimited download`);
   }
   
   // Legacy method compatibility
@@ -167,8 +167,8 @@ class SimpleAdaptiveAgent {
       deviceType: this.deviceType,
       uploadSpeed: this.uploadTargetSpeed, // Always 1 Mbps
       downloadSpeed: this.downloadSpeed,
-      maxDownloadSpeed: this.downloadTargetSpeed, // Target 2 Mbps
-      targetDownloadSpeed: this.downloadTargetSpeed, // Always 2 Mbps
+      maxDownloadSpeed: this.maxObservedDownloadSpeed || Infinity, // No limit
+      targetDownloadSpeed: Infinity, // No download limit
       speedEfficiency: '100%', // Always optimal for constant mode
       optimizationActive: false,
       // Constant mode stats
@@ -176,7 +176,7 @@ class SimpleAdaptiveAgent {
       downloadSpeedMbps: this.downloadSpeedMbps,
       constantMode: this.constantMode,
       calculatedDelay: this.uploadDelay.toFixed(1) + 'ms',
-      mode: 'Constant Speeds: 1 Mbps Upload, 2 Mbps Download'
+      mode: 'Upload: 1 Mbps (Limited) | Download: Unlimited'
     };
   }
 }
