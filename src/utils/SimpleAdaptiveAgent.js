@@ -17,12 +17,12 @@ class SimpleAdaptiveAgent {
     this.downloadSpeedMbps = 'Unlimited'; // No speed cap
     
     // Calculate optimal parameters for current upload speed
-    this.uploadChunkSize = 32768; // 32KB chunks
+    this.uploadChunkSize = 131072; // 128KB chunks (4x larger)
     this.uploadDelay = this.calculateUploadDelay(); // Calculated delay for current speed
     
     // Fixed parameters - no optimization needed
-    this.minChunkSize = 32768; // Fixed 32KB
-    this.maxChunkSize = 32768; // Fixed 32KB
+    this.minChunkSize = 131072; // Fixed 128KB
+    this.maxChunkSize = 131072; // Fixed 128KB
     this.constantMode = true; // No adaptive changes
     
     // Performance metrics (for display only)
@@ -54,7 +54,7 @@ class SimpleAdaptiveAgent {
     return 'Desktop';
   }
   
-  // Calculate exact delay needed for current upload speed with 32KB chunks
+  // Calculate exact delay needed for current upload speed with 128KB chunks
   calculateUploadDelay() {
     const chunksPerSecond = this.uploadTargetSpeed / this.uploadChunkSize;
     const timePerChunk = 1000 / chunksPerSecond; // milliseconds
@@ -145,9 +145,9 @@ class SimpleAdaptiveAgent {
     };
   }
   
-  // Get current chunk size - CONSTANT 32KB
+  // Get current chunk size - CONSTANT 128KB
   getChunkSize() {
-    return this.uploadChunkSize; // Always 32KB
+    return this.uploadChunkSize; // Always 128KB
   }
   
   // Get current send delay - DYNAMIC based on current speed

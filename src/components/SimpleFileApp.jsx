@@ -119,9 +119,9 @@ const SimpleFileApp = () => {
     <div className="simple-file-app">
       <style>
         {`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+          @keyframes bounce {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
           }
         `}
       </style>
@@ -417,7 +417,9 @@ const SimpleFileApp = () => {
                           key={file.id} 
                           className="file-item"
                           style={{
-                            backgroundColor: isCompleted ? '#f0f8f0' : downloadingFile ? '#e8f5e9' : 'transparent',
+                            background: downloadingFile 
+                              ? `linear-gradient(90deg, #c8e6c9 ${downloadingFile.progress || 0}%, #f5f5f5 ${downloadingFile.progress || 0}%)`
+                              : isCompleted ? '#f0f8f0' : 'transparent',
                             border: isCompleted ? '2px solid #2E7D32' : downloadingFile ? '2px solid #4CAF50' : '1px solid #e0e0e0',
                             padding: '12px',
                             borderRadius: '8px',
@@ -435,37 +437,6 @@ const SimpleFileApp = () => {
                             </div>
                             <div className="size">{formatSize(file.size)}</div>
                             
-                            {/* Show download progress and speed for active download */}
-                            {downloadingFile && (
-                              <div style={{ marginTop: '8px' }}>
-                                <div style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '10px',
-                                  fontSize: '12px',
-                                  color: '#4CAF50'
-                                }}>
-                                  <span>📥 {(downloadingFile.progress || 0).toFixed(1)}%</span>
-                                  <span>• {formatSpeed(downloadingFile.speed || 0)}</span>
-                                  <span>• {downloadingFile.receivedChunks}/{downloadingFile.totalChunks} chunks</span>
-                                </div>
-                                <div style={{
-                                  width: '100%',
-                                  height: '4px',
-                                  backgroundColor: '#e0e0e0',
-                                  borderRadius: '2px',
-                                  marginTop: '4px',
-                                  overflow: 'hidden'
-                                }}>
-                                  <div style={{
-                                    width: `${downloadingFile.progress || 0}%`,
-                                    height: '100%',
-                                    backgroundColor: '#4CAF50',
-                                    transition: 'width 0.3s ease'
-                                  }} />
-                                </div>
-                              </div>
-                            )}
                           </div>
                           
                           {/* Button/Status area */}
@@ -489,9 +460,8 @@ const SimpleFileApp = () => {
                             }}>
                               <span className="spinner" style={{ 
                                 display: 'inline-block',
-                                animation: 'spin 1s linear infinite'
-                              }}>⏳</span>
-                              Downloading
+                                animation: 'bounce 1s ease-in-out infinite'
+                              }}>📥</span>
                             </div>
                           ) : isQueued ? (
                             <span style={{ 
