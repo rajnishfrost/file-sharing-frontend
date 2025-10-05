@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useOnDemandTransfer } from '../hooks/useOnDemandTransferDebug';
 import './SimpleFileApp.css';
 
@@ -25,8 +25,35 @@ const SimpleFileApp = () => {
   const [roomInput, setRoomInput] = useState('');
   const [activeTab, setActiveTab] = useState('share'); // 'share' or 'download'
   const [dragActive, setDragActive] = useState(false);
+  const [downloadAllClicked, setDownloadAllClicked] = useState(false);
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
+
+  // Reset download all clicked state when downloads complete
+  useEffect(() => {
+    if (!isDownloadingAll && downloadAllClicked) {
+      console.log('✅ Downloads completed, resetting Download All button');
+      setDownloadAllClicked(false);
+    }
+  }, [isDownloadingAll, downloadAllClicked]);
+
+  // Handle download all with immediate button disable
+  const handleDownloadAll = () => {
+    if (downloadAllClicked) {
+      console.log('🚫 Download All button already clicked, ignoring');
+      return;
+    }
+    
+    setDownloadAllClicked(true);
+    console.log('🎯 Download All button clicked - button disabled');
+    
+    downloadAll();
+    
+    // Reset after a delay
+    setTimeout(() => {
+      setDownloadAllClicked(false);
+    }, 2000);
+  };
 
   // Handle file selection
   const handleFileSelect = (e) => {
@@ -81,6 +108,14 @@ const SimpleFileApp = () => {
 
   return (
     <div className="simple-file-app">
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       {/* Header */}
       <div className="header">
         <h1>📡 File Transfer</h1>
@@ -268,18 +303,35 @@ const SimpleFileApp = () => {
                     {availableFiles.length > 0 && (
                       <button
                         className="btn primary"
-                        onClick={downloadAll}
-                        disabled={isDownloadingAll || activeDownloads.length > 0}
+                        onClick={handleDownloadAll}
+                        disabled={downloadAllClicked || isDownloadingAll || activeDownloads.length > 0}
                         style={{
-                          backgroundColor: isDownloadingAll ? '#888' : '#4CAF50',
+                          backgroundColor: downloadAllClicked ? '#666' : isDownloadingAll ? '#FF9800' : activeDownloads.length > 0 ? '#888' : '#4CAF50',
                           color: 'white',
-                          padding: '8px 16px',
-                          borderRadius: '8px',
+                          padding: '7px 14px',
+                          borderRadius: '7px',
                           border: 'none',
-                          cursor: isDownloadingAll || activeDownloads.length > 0 ? 'not-allowed' : 'pointer'
+                          cursor: downloadAllClicked || isDownloadingAll || activeDownloads.length > 0 ? 'not-allowed' : 'pointer',
+                          fontWeight: '500',
+                          fontSize: '13px',
+                          transition: 'all 0.2s ease',
+                          opacity: downloadAllClicked ? 0.6 : 1
                         }}
+                        title={
+                          downloadAllClicked
+                            ? 'Processing Download All request...'
+                            : isDownloadingAll 
+                              ? `Downloading all files (${downloadQueue.length} remaining)` 
+                              : activeDownloads.length > 0 
+                                ? 'Wait for current download to complete' 
+                                : `Download all ${availableFiles.length} files`
+                        }
                       >
-                        {isDownloadingAll ? '⏳ Downloading...' : '⬇️ Download All'}
+                        {downloadAllClicked
+                          ? '🔄 Processing...'
+                          : isDownloadingAll 
+                            ? `⏳ Downloading All (${downloadQueue.length + 1}/${availableFiles.length})` 
+                            : '⬇️ Download All'}
                       </button>
                     )}
                     <button
@@ -316,32 +368,103 @@ const SimpleFileApp = () => {
                   <div className="files-list">
                     {availableFiles.map((file) => {
                       const isQueued = downloadQueue.find(f => f.id === file.id);
-                      const isDownloading = activeDownloads.find(d => d.fileId === file.id || d.fileName === file.name);
+                      const downloadingFile = activeDownloads.find(d => 
+                        (d.fileId === file.id || d.fileName === file.name) && d.isDownloading
+                      );
                       
                       return (
-                        <div key={file.id} className="file-item">
+                        <div 
+                          key={file.id} 
+                          className="file-item"
+                          style={{
+                            backgroundColor: downloadingFile ? '#e8f5e9' : 'transparent',
+                            border: downloadingFile ? '2px solid #4CAF50' : '1px solid #e0e0e0',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            marginBottom: '8px',
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
                           <span className="icon">{getFileIcon(file.type)}</span>
-                          <div className="details">
+                          <div className="details" style={{ flex: 1 }}>
                             <div className="name">{file.name}</div>
                             <div className="size">{formatSize(file.size)}</div>
+                            
+                            {/* Show download progress and speed for active download */}
+                            {downloadingFile && (
+                              <div style={{ marginTop: '8px' }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '10px',
+                                  fontSize: '12px',
+                                  color: '#4CAF50'
+                                }}>
+                                  <span>📥 {(downloadingFile.progress || 0).toFixed(1)}%</span>
+                                  <span>• {formatSpeed(downloadingFile.speed || 0)}</span>
+                                  <span>• {downloadingFile.receivedChunks}/{downloadingFile.totalChunks} chunks</span>
+                                </div>
+                                <div style={{
+                                  width: '100%',
+                                  height: '4px',
+                                  backgroundColor: '#e0e0e0',
+                                  borderRadius: '2px',
+                                  marginTop: '4px',
+                                  overflow: 'hidden'
+                                }}>
+                                  <div style={{
+                                    width: `${downloadingFile.progress || 0}%`,
+                                    height: '100%',
+                                    backgroundColor: '#4CAF50',
+                                    transition: 'width 0.3s ease'
+                                  }} />
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          {isDownloading ? (
-                            <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                              ⏳ Downloading...
-                            </span>
+                          
+                          {/* Button/Status area */}
+                          {downloadingFile ? (
+                            <div style={{ 
+                              color: '#4CAF50', 
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}>
+                              <span className="spinner" style={{ 
+                                display: 'inline-block',
+                                animation: 'spin 1s linear infinite'
+                              }}>⏳</span>
+                              Downloading
+                            </div>
                           ) : isQueued ? (
-                            <span style={{ color: '#FF9800' }}>
-                              📋 In Queue
+                            <span style={{ 
+                              color: '#FF9800',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}>
+                              📋 Queued
                             </span>
                           ) : (
                             <button
                               className="btn download custom-button"
                               onClick={() => requestDownload(file)}
-                              disabled={activeDownloads.length > 0}
+                              disabled={activeDownloads.length > 0 || isDownloadingAll}
                               style={{
-                                opacity: activeDownloads.length > 0 ? 0.5 : 1,
-                                cursor: activeDownloads.length > 0 ? 'not-allowed' : 'pointer'
+                                opacity: (activeDownloads.length > 0 || isDownloadingAll) ? 0.5 : 1,
+                                cursor: (activeDownloads.length > 0 || isDownloadingAll) ? 'not-allowed' : 'pointer',
+                                backgroundColor: (activeDownloads.length > 0 || isDownloadingAll) ? '#ccc' : '#2196F3',
+                                color: 'white',
+                                border: 'none',
+                                padding: '7px 14px',
+                                borderRadius: '5px',
+                                fontSize: '13px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s ease'
                               }}
+                              title={isDownloadingAll ? 'Download All in progress' : ''}
                             >
                               ⬇️ Download
                             </button>
