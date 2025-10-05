@@ -26,6 +26,7 @@ export const useOnDemandTransfer = () => {
   const isProcessingQueue = useRef(false);
   const downloadAllLock = useRef(false); // Prevent rapid downloadAll calls
   const queueProcessingLock = useRef(false); // Prevent multiple queue processing
+  const queueProcessingStarted = useRef(false); // Track if queue processing has started
   const downloadAllExecuted = useRef(false); // Track if downloadAll has been executed
 
 
@@ -501,13 +502,7 @@ export const useOnDemandTransfer = () => {
 
         // Check if download is complete (received all chunks)
         if (chunkInfo.isLast || transfer.receivedChunks === transfer.totalChunks) {
-          console.log(`✅ All chunks received for ${transfer.fileName}, triggering completion`);
-          // Trigger download completion with proper transferId
-          const currentTransferId = transferId; // Capture in closure
-          setTimeout(() => {
-            console.log(`🎯 Triggering completion for transfer ID: ${currentTransferId}`);
-            handleDownloadComplete({ requestId: currentTransferId });
-          }, 100);
+          console.log(`✅ All chunks received for ${transfer.fileName} - completion will be handled naturally`);
         }
 
         break;
@@ -607,11 +602,13 @@ export const useOnDemandTransfer = () => {
           } else {
             // No more files in queue, stop download all
             console.log('✅ All downloads completed, stopping Download All');
+            console.log('📊 Final download count check - remaining queue length:', prev.length);
             setIsDownloadingAll(false);
             // All downloads completed
             // Reset downloadAll flags
             downloadAllLock.current = false;
             downloadAllExecuted.current = false;
+            queueProcessingStarted.current = false;
             return prev;
           }
         });
@@ -644,6 +641,7 @@ export const useOnDemandTransfer = () => {
           setIsDownloadingAll(false);
           downloadAllLock.current = false;
           downloadAllExecuted.current = false;
+          queueProcessingStarted.current = false;
           return prev;
         }
       });
@@ -844,6 +842,7 @@ export const useOnDemandTransfer = () => {
 
     setDownloadQueue(prevQueue => {
       console.log(`🔄 Processing queue: ${prevQueue.length} files`);
+      console.log('📝 Queue contents:', prevQueue.map(f => f.name));
       
       // Check if queue is empty
       if (prevQueue.length === 0) {
@@ -864,6 +863,7 @@ export const useOnDemandTransfer = () => {
       const requestId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       console.log(`📥 Processing queued download: ${nextFile.name} (${remainingQueue.length} files remaining)`);
+      console.log('📝 Remaining files after this:', remainingQueue.map(f => f.name));
       
       if (peerRef.current && peerRef.current.connected) {
         peerRef.current.send(JSON.stringify({
@@ -886,13 +886,13 @@ export const useOnDemandTransfer = () => {
     });
   }, []);
 
-  // Download all files sequentially
+  // Download all files sequentially - completely rewritten to avoid React issues
   const downloadAll = useCallback(() => {
-    console.log('📞 downloadAll function called, executed:', downloadAllExecuted.current);
+    console.log('📞 downloadAll function called');
     
-    // Check if already executed
+    // Single atomic check and set
     if (downloadAllExecuted.current) {
-      console.log('🔒 Download All already executed, ignoring duplicate call');
+      console.log('🔒 Download All already executed, ignoring');
       return;
     }
     
@@ -901,51 +901,36 @@ export const useOnDemandTransfer = () => {
       return;
     }
 
-    // Mark as executed immediately
+    // Immediately set execution flag
     downloadAllExecuted.current = true;
     console.log('🔒 Download All execution marked');
 
-
-    console.log('🔄 Starting Download All');
-
-    setDownloadQueue(prevQueue => {
-      // Filter out files already in queue
-      const filesToQueue = availableFiles.filter(file => {
-        // Only check if in current queue (allow re-downloading)
-        const inQueue = prevQueue.find(f => f.id === file.id);
-        
-        if (inQueue) {
-          console.log(`⏭️ Skipping ${file.name}: already in queue`);
-          return false;
-        }
-        return true;
-      });
-
-      if (filesToQueue.length === 0) {
-        console.log('All files are already in queue');
-        downloadAllLock.current = false; // Release lock
-        downloadAllExecuted.current = false; // Reset execution flag
-        return prevQueue;
-      }
-
-      console.log(`📋 Adding ${filesToQueue.length} files to download queue`);
-      setIsDownloadingAll(true);
-
-      // Start processing queue
-      setTimeout(() => {
-        processDownloadQueue();
-      }, 100);
-
-      // Release the downloadAll lock after state is set (longer delay to prevent double calls)
-      setTimeout(() => {
-        downloadAllLock.current = false;
-        downloadAllExecuted.current = false;
-        console.log('🔓 Download All lock and execution flag released');
-      }, 2000);
-
-      return [...prevQueue, ...filesToQueue];
+    // Directly set the queue and start processing - avoid React state setter issues
+    const filesToAdd = availableFiles.filter(file => {
+      const alreadyInQueue = downloadQueue.find(f => f.id === file.id);
+      return !alreadyInQueue;
     });
-  }, [isConnected, availableFiles, isDownloadingAll]);
+
+    if (filesToAdd.length === 0) {
+      console.log('All files are already in queue');
+      downloadAllExecuted.current = false;
+      return;
+    }
+
+    console.log(`📋 Directly adding ${filesToAdd.length} files to download queue`);
+    console.log('📝 Files being added:', filesToAdd.map(f => f.name));
+
+    // Set states directly
+    setIsDownloadingAll(true);
+    setDownloadQueue(prev => [...prev, ...filesToAdd]);
+
+    // Start processing immediately
+    setTimeout(() => {
+      console.log('🚀 Starting download processing');
+      processDownloadQueue();
+    }, 300);
+
+  }, [isConnected, availableFiles, downloadQueue]);
 
   // Send my files list to peer with better debugging
   const sendMyFilesList = () => {
