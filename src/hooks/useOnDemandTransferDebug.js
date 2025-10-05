@@ -16,11 +16,14 @@ export const useOnDemandTransfer = () => {
   const [mySharedFiles, setMySharedFiles] = useState([]); // Files I'm sharing (actual File objects)
   const [downloadedFiles, setDownloadedFiles] = useState([]); // Files I've downloaded
   const [activeDownloads, setActiveDownloads] = useState([]); // Currently downloading
+  const [downloadQueue, setDownloadQueue] = useState([]); // Queue for pending downloads
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false); // Track if download all is active
   
   const peerRef = useRef(null);
   const fileRefsMap = useRef(new Map()); // Map file IDs to actual File objects
   const activeTransfersRef = useRef(new Map());
-  const wakeLockRef = useRef(null);
+  const isProcessingQueue = useRef(false);
+
 
   // Initialize socket connection
   useEffect(() => {
@@ -231,8 +234,6 @@ export const useOnDemandTransfer = () => {
 
       setActiveDownloads(prev => [...prev, uploadProgress]);
 
-      // Request wake lock for large transfers
-      await requestWakeLock();
 
       // Stream file chunks
       let offset = 0;
@@ -349,10 +350,6 @@ export const useOnDemandTransfer = () => {
       // Remove from active downloads
       setActiveDownloads(prev => {
         const remaining = prev.filter(d => d.id !== transferId);
-        // Release wake lock if no more active transfers
-        if (remaining.length === 0) {
-          releaseWakeLock();
-        }
         return remaining;
       });
 
@@ -370,10 +367,6 @@ export const useOnDemandTransfer = () => {
 
       setActiveDownloads(prev => {
         const remaining = prev.filter(d => d.id !== transferId);
-        // Release wake lock if no more active transfers
-        if (remaining.length === 0) {
-          releaseWakeLock();
-        }
         return remaining;
       });
     }
@@ -400,9 +393,6 @@ export const useOnDemandTransfer = () => {
 
     activeTransfersRef.current.set(message.requestId, transfer);
     setActiveDownloads(prev => [...prev, transfer]);
-    
-    // Request wake lock for downloads too
-    requestWakeLock();
   };
 
   // Handle chunk header
@@ -540,11 +530,20 @@ export const useOnDemandTransfer = () => {
       activeTransfersRef.current.delete(message.requestId);
       setActiveDownloads(prev => {
         const remaining = prev.filter(d => d.id !== message.requestId);
-        // Release wake lock if no more active transfers
-        if (remaining.length === 0) {
-          releaseWakeLock();
-        }
         return remaining;
+      });
+      
+      // Process next item in queue if exists
+      setDownloadQueue(prev => {
+        if (prev.length > 0) {
+          // Use setTimeout to avoid calling processDownloadQueue during state update
+          setTimeout(() => processDownloadQueue(), 100);
+          return prev;
+        } else {
+          // No more files in queue, stop download all
+          setIsDownloadingAll(false);
+          return prev;
+        }
       });
     }
   };
@@ -555,13 +554,17 @@ export const useOnDemandTransfer = () => {
     activeTransfersRef.current.delete(message.requestId);
     setActiveDownloads(prev => {
       const remaining = prev.filter(d => d.id !== message.requestId);
-      // Release wake lock if no more active transfers
-      if (remaining.length === 0) {
-        releaseWakeLock();
-      }
       return remaining;
     });
     alert(`Download failed: ${message.error}`);
+    
+    // Process next item in queue if exists
+    if (downloadQueue.length > 0) {
+      processDownloadQueue();
+    } else {
+      // No more files in queue, stop download all
+      setIsDownloadingAll(false);
+    }
   };
 
   // Create peer connection with enhanced debugging
@@ -712,6 +715,22 @@ export const useOnDemandTransfer = () => {
       return;
     }
 
+    // Check if already downloading
+    const currentlyDownloading = activeDownloads.filter(d => d.isDownloading).length;
+    if (currentlyDownloading > 0) {
+      // Add to queue instead
+      setDownloadQueue(prev => {
+        // Check if already in queue
+        if (prev.find(f => f.id === fileInfo.id)) {
+          console.log('File already in queue:', fileInfo.name);
+          return prev;
+        }
+        console.log(`📋 Added to download queue: ${fileInfo.name}`);
+        return [...prev, fileInfo];
+      });
+      return;
+    }
+
     const requestId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     console.log(`📥 Requesting download: ${fileInfo.name}`);
@@ -723,7 +742,75 @@ export const useOnDemandTransfer = () => {
       fileName: fileInfo.name,
       fileSize: fileInfo.size
     }));
-  }, [isConnected]);
+  }, [isConnected, activeDownloads]);
+
+  // Process download queue
+  const processDownloadQueue = useCallback(() => {
+    // Check if already processing or if queue is empty
+    if (isProcessingQueue.current || downloadQueue.length === 0) {
+      return;
+    }
+
+    // Check if there's an active download
+    const currentlyDownloading = activeDownloads.filter(d => d.isDownloading).length;
+    if (currentlyDownloading > 0) {
+      return;
+    }
+
+    // Get next file from queue
+    const nextFile = downloadQueue[0];
+    if (!nextFile) return;
+
+    // Remove from queue
+    setDownloadQueue(prev => prev.slice(1));
+
+    // Start download
+    const requestId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log(`📥 Processing queued download: ${nextFile.name}`);
+    
+    if (peerRef.current && peerRef.current.connected) {
+      peerRef.current.send(JSON.stringify({
+        type: 'download-request',
+        requestId: requestId,
+        fileId: nextFile.id,
+        fileName: nextFile.name,
+        fileSize: nextFile.size
+      }));
+    }
+  }, [downloadQueue, activeDownloads]);
+
+  // Download all files sequentially
+  const downloadAll = useCallback(() => {
+    if (!isConnected || availableFiles.length === 0) {
+      console.warn('Cannot download all: not connected or no files available');
+      return;
+    }
+
+    // Add all files to queue (excluding already queued or downloading)
+    const filesToQueue = availableFiles.filter(file => {
+      // Check if already in queue
+      const inQueue = downloadQueue.find(f => f.id === file.id);
+      // Check if already downloading
+      const downloading = activeDownloads.find(d => d.fileId === file.id);
+      return !inQueue && !downloading;
+    });
+
+    if (filesToQueue.length === 0) {
+      console.log('All files are already queued or downloading');
+      return;
+    }
+
+    console.log(`📋 Adding ${filesToQueue.length} files to download queue`);
+    setDownloadQueue(prev => [...prev, ...filesToQueue]);
+    setIsDownloadingAll(true);
+
+    // Start processing queue if not already downloading
+    const currentlyDownloading = activeDownloads.filter(d => d.isDownloading).length;
+    if (currentlyDownloading === 0) {
+      processDownloadQueue();
+    }
+  }, [isConnected, availableFiles, downloadQueue, activeDownloads, processDownloadQueue]);
 
   // Send my files list to peer with better debugging
   const sendMyFilesList = () => {
@@ -844,38 +931,6 @@ export const useOnDemandTransfer = () => {
     return `${secs}s`;
   };
 
-  // Wake lock management for mobile devices
-  const requestWakeLock = async () => {
-    if ('wakeLock' in navigator) {
-      try {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-        console.log('📱 Wake lock acquired - screen will stay on');
-        
-        wakeLockRef.current.addEventListener('release', () => {
-          console.log('📱 Wake lock released');
-        });
-        
-        return true;
-      } catch (err) {
-        console.warn('⚠️ Wake lock failed:', err);
-        return false;
-      }
-    }
-    return false;
-  };
-
-  const releaseWakeLock = async () => {
-    if (wakeLockRef.current) {
-      try {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-        console.log('📱 Wake lock released manually');
-      } catch (err) {
-        console.warn('⚠️ Wake lock release failed:', err);
-      }
-    }
-  };
-
   // Socket event handlers
   useEffect(() => {
     if (!socket) return;
@@ -964,8 +1019,11 @@ export const useOnDemandTransfer = () => {
     mySharedFiles,       // Files I'm sharing
     downloadedFiles,     // Files I've downloaded
     activeDownloads,     // Current transfers
+    downloadQueue,       // Files waiting to download
+    isDownloadingAll,    // Is download all active
     shareFiles,          // Share files (metadata only)
     requestDownload,     // Start downloading a file
+    downloadAll,         // Download all files sequentially
     refreshAvailableFiles, // Refresh peer's file list
     sendPing,            // Test connection
     createRoom,

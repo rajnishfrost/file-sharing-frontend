@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useOnDemandTransfer } from '../hooks/useOnDemandTransferDebug';
 import './SimpleFileApp.css';
 
@@ -10,64 +10,17 @@ const SimpleFileApp = () => {
     availableFiles,
     mySharedFiles,
     activeDownloads,
+    downloadQueue,
+    isDownloadingAll,
     shareFiles,
     requestDownload,
+    downloadAll,
     refreshAvailableFiles,
     createRoom,
     joinRoom,
     formatSize,
     formatSpeed
   } = useOnDemandTransfer();
-
-  const [showAddToHome, setShowAddToHome] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-
-  // Listen for the install prompt
-  React.useEffect(() => {
-    console.log('Setting up install prompt listener');
-
-    const handler = (e) => {
-      console.log('beforeinstallprompt event fired!');
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('App is already installed');
-    } else {
-      console.log('App is not installed yet');
-    }
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleAddToHome = async () => {
-    console.log('Add to Home clicked');
-    console.log('Deferred prompt available:', !!deferredPrompt);
-
-    if (deferredPrompt) {
-      try {
-        // Show native install prompt
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log('Install prompt outcome:', outcome);
-        if (outcome === 'accepted') {
-          setDeferredPrompt(null);
-          alert('App installed successfully!');
-        }
-      } catch (error) {
-        console.error('Install prompt error:', error);
-        setShowAddToHome(true);
-      }
-    } else {
-      // Fallback: show manual instructions
-      console.log('Showing manual instructions');
-      setShowAddToHome(!showAddToHome);
-    }
-  };
 
   const [roomInput, setRoomInput] = useState('');
   const [activeTab, setActiveTab] = useState('share'); // 'share' or 'download'
@@ -105,8 +58,6 @@ const SimpleFileApp = () => {
     }
   };
 
-  // Refresh is now handled by the hook
-
   // Get status color
   const getStatusColor = () => {
     switch (status) {
@@ -130,172 +81,6 @@ const SimpleFileApp = () => {
 
   return (
     <div className="simple-file-app">
-
-      <div style={{ textAlign: 'center', margin: '10px 0' }}>
-        <button
-          className='add-to-home-button'
-          onClick={handleAddToHome}
-          style={{
-            background: deferredPrompt ? '#4CAF50' : '#FF9800',
-            color: 'white',
-            border: 'none',
-            padding: '12px 20px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600',
-            marginRight: '10px'
-          }}
-        >
-          📱 Add to Home
-        </button>
-      </div>
-
-      {showAddToHome && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            animation: 'fadeIn 0.3s ease-out',
-            padding: '20px'
-          }}
-          onClick={() => setShowAddToHome(false)}
-        >
-          <style>
-            {`
-              @keyframes fadeIn {
-                from {
-                  opacity: 0;
-                }
-                to {
-                  opacity: 1;
-                }
-              }
-              @keyframes slideUp {
-                from {
-                  transform: translateY(30px);
-                  opacity: 0;
-                }
-                to {
-                  transform: translateY(0);
-                  opacity: 1;
-                }
-              }
-            `}
-          </style>
-          <div
-            style={{
-              background: 'white',
-              padding: '25px',
-              borderRadius: '16px',
-              maxWidth: '500px',
-              width: '100%',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-              animation: 'slideUp 0.4s ease-out',
-              position: 'relative'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowAddToHome(false)}
-              style={{
-                position: 'absolute',
-                top: '15px',
-                right: '15px',
-                background: 'none',
-                border: 'none',
-                color: '#ff0000',
-                fontSize: '28px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                lineHeight: '1',
-                padding: '5px',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.color = '#cc0000';
-                e.target.style.transform = 'scale(1.2)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.color = '#ff0000';
-                e.target.style.transform = 'scale(1)';
-              }}
-            >
-              ×
-            </button>
-
-            <h4 style={{ margin: '0 0 20px 0', color: '#333', fontSize: '22px', fontWeight: '700', textAlign: 'center' }}>
-              📱 Add to Home Screen
-            </h4>
-
-            <div style={{ background: '#f0f4ff', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: '2px solid #e0e8ff' }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#333', fontWeight: '600' }}>
-                🤖 Android Chrome:
-              </p>
-              <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '14px', color: '#555', lineHeight: '1.8' }}>
-                <li>Tap the menu button (⋮) in top right corner</li>
-                <li>Look for "Add to Home screen" or "Install app"</li>
-                <li>Tap it and confirm "Add" or "Install"</li>
-                <li>App icon will appear on your home screen</li>
-              </ol>
-            </div>
-
-            <div style={{ background: '#fff3e0', padding: '15px', borderRadius: '10px', marginBottom: '15px', border: '2px solid #ffe0b2' }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#333', fontWeight: '600' }}>
-                🍎 iPhone/iPad Safari:
-              </p>
-              <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '14px', color: '#555', lineHeight: '1.8' }}>
-                <li>Tap the Share button at the bottom</li>
-                <li>Scroll and tap "Add to Home Screen"</li>
-                <li>Tap "Add" in top right</li>
-                <li>App icon will appear on your home screen</li>
-              </ol>
-            </div>
-
-            <div style={{ background: '#e8f5e9', padding: '15px', borderRadius: '10px', border: '2px solid #c8e6c9' }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#333', fontWeight: '600' }}>
-                💻 Desktop (Chrome/Edge):
-              </p>
-              <p style={{ margin: '0', fontSize: '14px', color: '#555', lineHeight: '1.8' }}>
-                Look for the install icon (⊕ or computer icon) in the address bar and click it.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setShowAddToHome(false)}
-              style={{
-                marginTop: '20px',
-                width: '100%',
-                padding: '12px',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '15px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'transform 0.2s'
-              }}
-              onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-              onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-            >
-              Got it!
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="header">
         <h1>📡 File Transfer</h1>
@@ -479,16 +264,42 @@ const SimpleFileApp = () => {
               <div className="download-tab">
                 <div className="tab-header">
                   <h3>📥 Available Downloads</h3>
-                  <button
-                    className="btn refresh"
-                    onClick={refreshAvailableFiles}
-                    title="Refresh list"
-                  >
-                    🔄 Refresh
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    {availableFiles.length > 0 && (
+                      <button
+                        className="btn primary"
+                        onClick={downloadAll}
+                        disabled={isDownloadingAll || activeDownloads.length > 0}
+                        style={{
+                          backgroundColor: isDownloadingAll ? '#888' : '#4CAF50',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          cursor: isDownloadingAll || activeDownloads.length > 0 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {isDownloadingAll ? '⏳ Downloading...' : '⬇️ Download All'}
+                      </button>
+                    )}
+                    <button
+                      className="btn refresh"
+                      onClick={refreshAvailableFiles}
+                      title="Refresh list"
+                    >
+                      🔄 Refresh
+                    </button>
+                  </div>
                 </div>
 
-                <p className="hint">Files shared by your peer • Click download to start transfer</p>
+                <p className="hint">
+                  Files shared by your peer • One file downloads at a time
+                  {downloadQueue.length > 0 && (
+                    <span style={{ color: '#FF9800', marginLeft: '10px' }}>
+                      📋 {downloadQueue.length} file{downloadQueue.length > 1 ? 's' : ''} in queue
+                    </span>
+                  )}
+                </p>
 
                 {availableFiles.length === 0 ? (
                   <div className="empty-state">
@@ -503,21 +314,41 @@ const SimpleFileApp = () => {
                   </div>
                 ) : (
                   <div className="files-list">
-                    {availableFiles.map((file) => (
-                      <div key={file.id} className="file-item">
-                        <span className="icon">{getFileIcon(file.type)}</span>
-                        <div className="details">
-                          <div className="name">{file.name}</div>
-                          <div className="size">{formatSize(file.size)}</div>
+                    {availableFiles.map((file) => {
+                      const isQueued = downloadQueue.find(f => f.id === file.id);
+                      const isDownloading = activeDownloads.find(d => d.fileId === file.id || d.fileName === file.name);
+                      
+                      return (
+                        <div key={file.id} className="file-item">
+                          <span className="icon">{getFileIcon(file.type)}</span>
+                          <div className="details">
+                            <div className="name">{file.name}</div>
+                            <div className="size">{formatSize(file.size)}</div>
+                          </div>
+                          {isDownloading ? (
+                            <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                              ⏳ Downloading...
+                            </span>
+                          ) : isQueued ? (
+                            <span style={{ color: '#FF9800' }}>
+                              📋 In Queue
+                            </span>
+                          ) : (
+                            <button
+                              className="btn download custom-button"
+                              onClick={() => requestDownload(file)}
+                              disabled={activeDownloads.length > 0}
+                              style={{
+                                opacity: activeDownloads.length > 0 ? 0.5 : 1,
+                                cursor: activeDownloads.length > 0 ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              ⬇️ Download
+                            </button>
+                          )}
                         </div>
-                        <button
-                          className="btn download custom-button"
-                          onClick={() => requestDownload(file)}
-                        >
-                          ⬇️ Download
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

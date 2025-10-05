@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import SimpleFileApp from './components/SimpleFileApp';
-import ScreenAwakeGuide from './components/ScreenAwakeGuide';
 import MaintenanceModal from './components/MaintenanceModal';
 import UserCounter from './components/UserCounter';
 import healthCheckService from './services/healthCheck';
@@ -59,7 +58,6 @@ function SimpleApp() {
         {/* Show health info overlay */}
         <div >
           <UserCounter serverStats={serverStats} />
-            <ScreenAwakeGuide />
         </div>
       </div>
     </div>
