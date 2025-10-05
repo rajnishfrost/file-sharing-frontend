@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useOnDemandTransfer } from '../hooks/useOnDemandTransferDebug';
+import SimpleSpeedControl from './SimpleSpeedControl';
+import { adaptiveAgent } from '../utils/SimpleAdaptiveAgent';
 import './SimpleFileApp.css';
 
 const SimpleFileApp = () => {
@@ -29,6 +31,12 @@ const SimpleFileApp = () => {
   const [downloadAllClicked, setDownloadAllClicked] = useState(false);
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
+
+  // Handle speed change from control
+  const handleSpeedChange = (newSpeed) => {
+    console.log(`🎛️ User changed speed to: ${newSpeed} MBps`);
+    adaptiveAgent.setUploadSpeed(newSpeed);
+  };
 
   // Reset download all clicked state when downloads complete
   useEffect(() => {
@@ -196,6 +204,14 @@ const SimpleFileApp = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Speed Control - Only show when connected */}
+      {isConnected && (
+        <SimpleSpeedControl 
+          onSpeedChange={handleSpeedChange}
+          initialSpeed={0.1}
+        />
       )}
 
       {/* Tabs - Only show when connected */}

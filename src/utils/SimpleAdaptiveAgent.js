@@ -6,19 +6,19 @@
 
 class SimpleAdaptiveAgent {
   constructor() {
-    // CONSTANT UPLOAD SPEED STRATEGY - 1 Mbps Upload, Unlimited Download
+    // DYNAMIC UPLOAD SPEED STRATEGY - User Configurable Upload, Unlimited Download
     
-    // Fixed upload speed: 1 Mbps = 1,048,576 bytes per second
-    this.uploadTargetSpeed = 1 * 1024 * 1024; // 1 Mbps in bytes/second
-    this.uploadSpeedMbps = 1; // 1 Mbps
+    // Default upload speed: 0.1 MBps = 104,857.6 bytes per second
+    this.uploadTargetSpeed = 0.1 * 1024 * 1024; // 0.1 MBps in bytes/second
+    this.uploadSpeedMBps = 0.1; // 0.1 MBps (default)
     
     // Unlimited download speed - no target limit
     this.downloadTargetSpeed = Infinity; // No download limit
     this.downloadSpeedMbps = 'Unlimited'; // No speed cap
     
-    // Calculate optimal parameters for 1 Mbps upload
-    this.uploadChunkSize = 32768; // 32KB chunks for smooth 1 Mbps
-    this.uploadDelay = this.calculateDelayFor1Mbps(); // Calculated delay for exactly 1 Mbps
+    // Calculate optimal parameters for current upload speed
+    this.uploadChunkSize = 32768; // 32KB chunks
+    this.uploadDelay = this.calculateUploadDelay(); // Calculated delay for current speed
     
     // Fixed parameters - no optimization needed
     this.minChunkSize = 32768; // Fixed 32KB
@@ -39,7 +39,7 @@ class SimpleAdaptiveAgent {
     
     // Device detection
     this.deviceType = this.detectDevice();
-    console.log(`📱 Device detected: ${this.deviceType} - Using constant 1 Mbps upload, unlimited download`);
+    console.log(`📱 Device detected: ${this.deviceType} - Using dynamic upload speed (default: ${this.uploadSpeedMBps} MBps), unlimited download`);
   }
   
   detectDevice() {
@@ -54,22 +54,24 @@ class SimpleAdaptiveAgent {
     return 'Desktop';
   }
   
-  // Calculate exact delay needed for 1 Mbps upload with 32KB chunks
-  calculateDelayFor1Mbps() {
-    // Target: 1 Mbps upload = 1,048,576 bytes/second
-    // Chunk size: 32KB = 32,768 bytes
-    // Required chunks per second: 1,048,576 / 32,768 = 32 chunks/second
-    // Time per chunk: 1000ms / 32 = 31.25ms
-    // Accounting for processing overhead (~6ms), delay = 31.25 - 6 = 25.25ms
-    
+  // Calculate exact delay needed for current upload speed with 32KB chunks
+  calculateUploadDelay() {
     const chunksPerSecond = this.uploadTargetSpeed / this.uploadChunkSize;
     const timePerChunk = 1000 / chunksPerSecond; // milliseconds
     const processingOverhead = 6; // estimated processing time
-    const requiredDelay = Math.max(0, timePerChunk - processingOverhead);
+    const requiredDelay = Math.max(10, timePerChunk - processingOverhead); // minimum 10ms
     
-    console.log(`🎯 Upload calculated for 1 Mbps: ${chunksPerSecond.toFixed(1)} chunks/sec, ${timePerChunk.toFixed(1)}ms per chunk, ${requiredDelay.toFixed(1)}ms delay`);
+    console.log(`🎯 Upload calculated for ${this.uploadSpeedMBps} MBps: ${chunksPerSecond.toFixed(1)} chunks/sec, ${timePerChunk.toFixed(1)}ms per chunk, ${requiredDelay.toFixed(1)}ms delay`);
     console.log(`📊 Download speed: Unlimited (no speed cap on downloads)`);
     return requiredDelay;
+  }
+  
+  // Update upload speed dynamically
+  setUploadSpeed(speedMBps) {
+    this.uploadSpeedMBps = speedMBps;
+    this.uploadTargetSpeed = speedMBps * 1024 * 1024; // Convert to bytes/second
+    this.uploadDelay = this.calculateUploadDelay(); // Recalculate delay
+    console.log(`⚡ Upload speed updated to: ${speedMBps} MBps (delay: ${this.uploadDelay.toFixed(1)}ms)`);
   }
   
   // Process feedback from receiver - CONSTANT SPEED MODE
@@ -95,10 +97,10 @@ class SimpleAdaptiveAgent {
     const currentDownloadMbps = (this.downloadSpeed / 1024 / 1024).toFixed(1);
     const bufferChunks = this.bufferLevel;
     
-    console.log(`📊 SPEEDS - Upload: 1.0 MB/s (limited) | Download: ${currentDownloadMbps} MB/s (unlimited) | Buffer: ${bufferChunks} chunks`);
+    console.log(`📊 SPEEDS - Upload: ${this.uploadSpeedMBps} MB/s (limited) | Download: ${currentDownloadMbps} MB/s (unlimited) | Buffer: ${bufferChunks} chunks`);
     
-    // No parameter changes - always maintain 1 Mbps upload settings
-    // Upload parameters remain constant at 1 Mbps
+    // No parameter changes during transfer - maintain current upload settings
+    // Upload parameters remain constant during active transfer
   }
   
   // Reset for new transfer - CONSTANT MODE
@@ -106,7 +108,7 @@ class SimpleAdaptiveAgent {
     // Reset basic metrics but keep constant parameters
     this.bufferLevel = 0;
     this.speedHistory = [];
-    console.log(`🔄 New transfer starting - Maintaining 1 Mbps upload limit, unlimited download`);
+    console.log(`🔄 New transfer starting - Upload limit: ${this.uploadSpeedMBps} MBps, unlimited download`);
   }
   
   // Legacy method compatibility
@@ -148,14 +150,14 @@ class SimpleAdaptiveAgent {
     return this.uploadChunkSize; // Always 32KB
   }
   
-  // Get current send delay - CONSTANT for 1 Mbps
+  // Get current send delay - DYNAMIC based on current speed
   getSendDelay() {
-    return Math.floor(this.uploadDelay); // Calculated for 1 Mbps
+    return Math.floor(this.uploadDelay); // Calculated for current speed
   }
   
-  // Check if should apply delay - ALWAYS true for 1 Mbps
+  // Check if should apply delay - ALWAYS true for speed control
   shouldDelay() {
-    return true; // Always apply delay for constant 1 Mbps
+    return true; // Always apply delay for speed control
   }
   
   // Update stats for display - CONSTANT SPEED MODE
@@ -165,7 +167,7 @@ class SimpleAdaptiveAgent {
       sendDelay: this.getSendDelay(),
       bufferLevel: this.bufferLevel,
       deviceType: this.deviceType,
-      uploadSpeed: this.uploadTargetSpeed, // Always 1 Mbps
+      uploadSpeed: this.uploadTargetSpeed, // Current speed setting
       downloadSpeed: this.downloadSpeed,
       maxDownloadSpeed: this.maxObservedDownloadSpeed || Infinity, // No limit
       targetDownloadSpeed: Infinity, // No download limit
@@ -176,7 +178,7 @@ class SimpleAdaptiveAgent {
       downloadSpeedMbps: this.downloadSpeedMbps,
       constantMode: this.constantMode,
       calculatedDelay: this.uploadDelay.toFixed(1) + 'ms',
-      mode: 'Upload: 1 Mbps (Limited) | Download: Unlimited'
+      mode: `Upload: ${this.uploadSpeedMBps} MBps (Limited) | Download: Unlimited`
     };
   }
 }
