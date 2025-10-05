@@ -238,7 +238,10 @@ const SimpleFileApp = () => {
             {/* Share Tab */}
             {activeTab === 'share' && (
               <div className="share-tab">
-                <h3>📤 Share Files</h3>
+                <div className="tab-header">
+                  <h3>📤 Share Files</h3>
+                  <div></div> {/* Empty div to match download tab structure */}
+                </div>
                 <p className="hint">Files stay on your device until someone downloads them</p>
 
                 {/* Drop Zone */}
@@ -316,49 +319,68 @@ const SimpleFileApp = () => {
               <div className="download-tab">
                 <div className="tab-header">
                   <h3>📥 Available Downloads</h3>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    {availableFiles.length > 0 && (
-                      <button
-                        className="btn primary"
-                        onClick={handleDownloadAll}
-                        disabled={downloadAllClicked || isDownloadingAll || activeDownloads.length > 0}
-                        style={{
-                          backgroundColor: downloadAllClicked ? '#666' : isDownloadingAll ? '#FF9800' : activeDownloads.length > 0 ? '#888' : '#4CAF50',
-                          color: 'white',
-                          padding: '7px 14px',
-                          borderRadius: '7px',
-                          border: 'none',
-                          cursor: downloadAllClicked || isDownloadingAll || activeDownloads.length > 0 ? 'not-allowed' : 'pointer',
-                          fontWeight: '500',
-                          fontSize: '13px',
-                          transition: 'all 0.2s ease',
-                          opacity: downloadAllClicked ? 0.6 : 1
-                        }}
-                        title={
-                          downloadAllClicked
-                            ? 'Processing Download All request...'
-                            : isDownloadingAll 
-                              ? `Downloading all files (${downloadQueue.length} remaining)` 
-                              : activeDownloads.length > 0 
-                                ? 'Wait for current download to complete' 
-                                : `Download all ${availableFiles.length} files`
-                        }
-                      >
-                        {downloadAllClicked
-                          ? '🔄 Processing...'
-                          : isDownloadingAll 
-                            ? `⏳ Downloading All (${downloadQueue.length + 1}/${availableFiles.length})` 
-                            : '⬇️ Download All'}
-                      </button>
-                    )}
+                  <div></div> {/* Empty div to match share tab structure */}
+                </div>
+                
+                {/* Download Controls - Separate row */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '10px', 
+                  marginBottom: '15px',
+                  justifyContent: 'center'
+                }}>
+                  {availableFiles.length > 0 && (
                     <button
-                      className="btn refresh"
-                      onClick={refreshAvailableFiles}
-                      title="Refresh list"
+                      className="btn primary"
+                      onClick={handleDownloadAll}
+                      disabled={downloadAllClicked || isDownloadingAll || activeDownloads.length > 0}
+                      style={{
+                        backgroundColor: downloadAllClicked ? '#666' : isDownloadingAll ? '#FF9800' : activeDownloads.length > 0 ? '#888' : '#4CAF50',
+                        color: 'white',
+                        padding: '10px 20px',
+                        borderRadius: '7px',
+                        border: 'none',
+                        cursor: downloadAllClicked || isDownloadingAll || activeDownloads.length > 0 ? 'not-allowed' : 'pointer',
+                        fontWeight: '500',
+                        fontSize: '13px',
+                        transition: 'all 0.2s ease',
+                        opacity: downloadAllClicked ? 0.6 : 1
+                      }}
+                      title={
+                        downloadAllClicked
+                          ? 'Processing Download All request...'
+                          : isDownloadingAll 
+                            ? `Downloading all files (${downloadQueue.length} remaining)` 
+                            : activeDownloads.length > 0 
+                              ? 'Wait for current download to complete' 
+                              : `Download all ${availableFiles.length} files`
+                      }
                     >
-                      🔄 Refresh
+                      {downloadAllClicked
+                        ? '🔄 Processing...'
+                        : isDownloadingAll 
+                          ? `⏳ Downloading All (${downloadQueue.length + 1}/${availableFiles.length})` 
+                          : '⬇️ Download All'}
                     </button>
-                  </div>
+                  )}
+                  <button
+                    className="btn refresh"
+                    onClick={refreshAvailableFiles}
+                    title="Refresh list"
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '7px',
+                      border: '1px solid #ddd',
+                      background: 'white',
+                      color: '#333',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    🔄 Refresh
+                  </button>
                 </div>
 
                 <p className="hint">

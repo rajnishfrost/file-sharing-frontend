@@ -22,7 +22,11 @@ const SimpleSpeedControl = ({ onSpeedChange, initialSpeed = 0.1 }) => {
         justifyContent: 'space-between',
         marginBottom: '10px'
       }}>
-        <span style={{ fontWeight: '600', fontSize: '14px' }}>
+        <span style={{ 
+          fontWeight: '600', 
+          fontSize: '14px',
+          color: '#333'
+        }}>
           Upload Speed:
         </span>
         <span style={{
@@ -54,7 +58,8 @@ const SimpleSpeedControl = ({ onSpeedChange, initialSpeed = 0.1 }) => {
         display: 'flex',
         justifyContent: 'space-between',
         fontSize: '11px',
-        color: '#666'
+        color: '#666',
+        fontWeight: '500'
       }}>
         <span>0.1</span>
         <span>1.0</span>
