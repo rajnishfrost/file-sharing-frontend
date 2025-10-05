@@ -12,6 +12,7 @@ const SimpleFileApp = () => {
     activeDownloads,
     downloadQueue,
     isDownloadingAll,
+    completedDownloads,
     shareFiles,
     requestDownload,
     downloadAll,
@@ -371,23 +372,29 @@ const SimpleFileApp = () => {
                       const downloadingFile = activeDownloads.find(d => 
                         (d.fileId === file.id || d.fileName === file.name) && d.isDownloading
                       );
+                      const isCompleted = completedDownloads.has(file.id);
                       
                       return (
                         <div 
                           key={file.id} 
                           className="file-item"
                           style={{
-                            backgroundColor: downloadingFile ? '#e8f5e9' : 'transparent',
-                            border: downloadingFile ? '2px solid #4CAF50' : '1px solid #e0e0e0',
+                            backgroundColor: isCompleted ? '#f0f8f0' : downloadingFile ? '#e8f5e9' : 'transparent',
+                            border: isCompleted ? '2px solid #2E7D32' : downloadingFile ? '2px solid #4CAF50' : '1px solid #e0e0e0',
                             padding: '12px',
                             borderRadius: '8px',
                             marginBottom: '8px',
-                            transition: 'all 0.3s ease'
+                            transition: 'all 0.3s ease',
+                            opacity: isCompleted ? 0.8 : 1
                           }}
                         >
                           <span className="icon">{getFileIcon(file.type)}</span>
                           <div className="details" style={{ flex: 1 }}>
-                            <div className="name">{file.name}</div>
+                            <div className="name">
+                              {isCompleted && <span style={{ color: '#2E7D32', marginRight: '8px', fontWeight: 'bold' }}>✅</span>}
+                              {file.name}
+                              {isCompleted && <span style={{ color: '#2E7D32', marginLeft: '8px', fontSize: '12px' }}>(Downloaded)</span>}
+                            </div>
                             <div className="size">{formatSize(file.size)}</div>
                             
                             {/* Show download progress and speed for active download */}
@@ -424,7 +431,17 @@ const SimpleFileApp = () => {
                           </div>
                           
                           {/* Button/Status area */}
-                          {downloadingFile ? (
+                          {isCompleted ? (
+                            <div style={{ 
+                              color: '#2E7D32', 
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}>
+                              ✅ Downloaded
+                            </div>
+                          ) : downloadingFile ? (
                             <div style={{ 
                               color: '#4CAF50', 
                               fontWeight: 'bold',

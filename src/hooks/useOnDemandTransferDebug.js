@@ -15,6 +15,7 @@ export const useOnDemandTransfer = () => {
   const [availableFiles, setAvailableFiles] = useState([]); // Files others are sharing (metadata only)
   const [mySharedFiles, setMySharedFiles] = useState([]); // Files I'm sharing (actual File objects)
   const [downloadedFiles, setDownloadedFiles] = useState([]); // Files I've downloaded
+  const [completedDownloads, setCompletedDownloads] = useState(new Set()); // Track completed file IDs
   const [activeDownloads, setActiveDownloads] = useState([]); // Currently downloading
   const [downloadQueue, setDownloadQueue] = useState([]); // Queue for pending downloads
   const [isDownloadingAll, setIsDownloadingAll] = useState(false); // Track if download all is active
@@ -567,6 +568,10 @@ export const useOnDemandTransfer = () => {
       };
 
       setDownloadedFiles(prev => [...prev, downloadedFile]);
+      
+      // Mark file as completed
+      setCompletedDownloads(prev => new Set([...prev, transfer.fileId]));
+      console.log(`✅ Marked file as completed: ${transfer.fileName} (ID: ${transfer.fileId})`);
       
       // Auto-download
       const a = document.createElement('a');
@@ -1151,6 +1156,7 @@ export const useOnDemandTransfer = () => {
     activeDownloads,     // Current transfers
     downloadQueue,       // Files waiting to download
     isDownloadingAll,    // Is download all active
+    completedDownloads,  // Track which files have been downloaded
     shareFiles,          // Share files (metadata only)
     requestDownload,     // Start downloading a file
     downloadAll,         // Download all files sequentially
