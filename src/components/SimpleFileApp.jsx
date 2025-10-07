@@ -157,7 +157,10 @@ const SimpleFileApp = () => {
               type="text"
               placeholder="Room Code"
               value={roomInput}
-              onChange={(e) => setRoomInput(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                setRoomInput(value);
+              }}
               maxLength={6}
             />
             <button
