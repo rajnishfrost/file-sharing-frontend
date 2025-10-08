@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import SimplePeer from 'simple-peer';
 import { adaptiveAgent, applyAdaptiveDelay, getAdaptiveChunkSize } from '../utils/SimpleAdaptiveAgent';
+import { SpeedTester } from '../utils/speedTest';
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
@@ -10,6 +11,7 @@ export const useOnDemandTransfer = () => {
   const [roomId, setRoomId] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [status, setStatus] = useState('disconnected');
+  const [detectedSpeed, setDetectedSpeed] = useState(null);
   
   // Separate states for different types of files
   const [availableFiles, setAvailableFiles] = useState([]); // Files others are sharing (metadata only)
@@ -21,6 +23,7 @@ export const useOnDemandTransfer = () => {
   const [isDownloadingAll, setIsDownloadingAll] = useState(false); // Track if download all is active
   
   const peerRef = useRef(null);
+  const speedTesterRef = useRef(null);
   const fileRefsMap = useRef(new Map()); // Map file IDs to actual File objects
   const activeTransfersRef = useRef(new Map());
   const isProcessingQueue = useRef(false);
@@ -28,6 +31,8 @@ export const useOnDemandTransfer = () => {
   const queueProcessingLock = useRef(false); // Prevent multiple queue processing
   const queueProcessingStarted = useRef(false); // Track if queue processing has started
   const downloadAllExecuted = useRef(false); // Track if downloadAll has been executed
+  const speedCapabilitiesExchanged = useRef(false); // Track if speed capabilities have been exchanged
+  const speedTestCompleted = useRef(false); // Track if speed test has been completed
 
 
   // Initialize socket connection
@@ -57,8 +62,19 @@ export const useOnDemandTransfer = () => {
         // String data - JSON control message
         const message = JSON.parse(data);
         console.log('📨 Received control message:', message.type, message);
+
+        // Route to speed tester if it's a speed test message
+        if (speedTesterRef.current && message.type && message.type.startsWith('speed-test-')) {
+          speedTesterRef.current.handleMessage(message);
+        }
+
         handleControlMessage(message);
       } else if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
+        // Pass to speed tester for binary data handling during tests
+        if (speedTesterRef.current) {
+          speedTesterRef.current.handleIncomingData(data);
+        }
+
         // Try to decode as string first to check if it's JSON
         try {
           const decoder = new TextDecoder();
@@ -67,9 +83,11 @@ export const useOnDemandTransfer = () => {
           console.log('📨 Received control message (decoded from binary):', message.type, message);
           handleControlMessage(message);
         } catch (decodeError) {
-          // Not JSON, treat as file chunk
-          console.log('📦 Received binary file chunk:', data.byteLength || data.length, 'bytes');
-          handleFileChunk(data);
+          // Not JSON, treat as file chunk (if not consumed by speed test)
+          if (!speedTesterRef.current || !speedTesterRef.current.downloadTestActive) {
+            console.log('📦 Received binary file chunk:', data.byteLength || data.length, 'bytes');
+            handleFileChunk(data);
+          }
         }
       } else {
         // Other binary data types
@@ -83,6 +101,45 @@ export const useOnDemandTransfer = () => {
 
   const handleControlMessage = (message) => {
     switch (message.type) {
+      case 'speed-capabilities':
+        // Handle speed capabilities exchange
+        console.log('📊 Received peer speed capabilities:', message);
+        console.log(`📊 Peer Upload: ${message.uploadSpeed} MBps, Peer Download: ${message.downloadSpeed} MBps`);
+
+        // Calculate UATD = min(my upload, their download)
+        const myUpload = adaptiveAgent.myUploadSpeed || adaptiveAgent.uploadSpeedMBps || 0.1;
+        const theirDownload = message.downloadSpeed;
+        const uatd = Math.min(myUpload, theirDownload);
+
+        console.log(`📊 Calculating UATD:`);
+        console.log(`   My Upload: ${myUpload.toFixed(2)} MBps`);
+        console.log(`   Their Download: ${theirDownload.toFixed(2)} MBps`);
+        console.log(`   UATD = min(${myUpload.toFixed(2)}, ${theirDownload.toFixed(2)}) = ${uatd.toFixed(2)} MBps`);
+
+        // Update the detected speed and slider
+        setDetectedSpeed(uatd);
+        adaptiveAgent.setUploadSpeed(uatd);
+
+        adaptiveAgent.setSpeedCapabilities(
+          myUpload, // Our upload
+          adaptiveAgent.myDownloadSpeed || 100, // Our download
+          message.uploadSpeed, // Remote upload
+          message.downloadSpeed // Remote download
+        );
+
+        // Send our capabilities back if not already sent
+        if (!speedCapabilitiesExchanged.current && speedTestCompleted.current) {
+          speedCapabilitiesExchanged.current = true;
+          const localCapabilities = {
+            type: 'speed-capabilities',
+            uploadSpeed: adaptiveAgent.myUploadSpeed || adaptiveAgent.uploadSpeedMBps,
+            downloadSpeed: adaptiveAgent.myDownloadSpeed || 100,
+            deviceType: navigator.userAgent
+          };
+          peerRef.current.send(JSON.stringify(localCapabilities));
+          console.log('📤 Sent my speed capabilities to peer:', localCapabilities);
+        }
+        break;
       case 'adaptive-feedback':
         // Handle adaptive rate control feedback
         adaptiveAgent.processFeedback(message);
@@ -134,6 +191,16 @@ export const useOnDemandTransfer = () => {
         break;
       case 'keepalive-ack':
         console.log(`💓 Keepalive acknowledged for transfer ${message.transferId}`);
+        break;
+      case 'speed-test-upload-start':
+      case 'speed-test-upload-end':
+      case 'speed-test-download-start':
+      case 'speed-test-download-end':
+      case 'speed-test-request-download':
+        // Handle speed test messages
+        if (peerRef.current) {
+          SpeedTester.handleSpeedTestMessage(message, peerRef.current);
+        }
         break;
     }
   };
@@ -222,8 +289,10 @@ export const useOnDemandTransfer = () => {
     // Reset adaptive agent for new transfer
     adaptiveAgent.resetForNewTransfer();
     
-    const CHUNK_SIZE = getAdaptiveChunkSize(131072); // Use adaptive chunk size, defaulting to 128KB max
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    // Get initial chunk size from adaptive agent
+    const initialChunkSize = getAdaptiveChunkSize(131072);
+    // Calculate total chunks based on initial chunk size
+    const totalChunks = Math.ceil(file.size / initialChunkSize);
 
     console.log(`🚀 Starting upload: ${file.name} (${formatSize(file.size)}) - Two-phase strategy`);
 
@@ -237,7 +306,7 @@ export const useOnDemandTransfer = () => {
         fileSize: file.size,
         mimeType: file.type,
         totalChunks: totalChunks,
-        chunkSize: CHUNK_SIZE
+        chunkSize: initialChunkSize
       }));
 
       // Starting upload
@@ -265,14 +334,18 @@ export const useOnDemandTransfer = () => {
           throw new Error('Peer disconnected during upload');
         }
         
-        // Check if upload should be paused (adaptive agent will set chunk size to 0)
-        const currentChunkSize = getAdaptiveChunkSize(CHUNK_SIZE);
+        // Get current chunk size dynamically from adaptive agent
+        const currentChunkSize = getAdaptiveChunkSize(initialChunkSize);
         if (currentChunkSize === 0) {
           console.log(`⏸️ Upload paused at chunk ${chunkIndex} - waiting for phase transition...`);
           await delay(100); // Wait 100ms and check again
           chunkIndex--; // Retry this chunk
           continue;
         }
+        
+        // Ensure we don't read beyond file size
+        const remainingBytes = file.size - offset;
+        const actualChunkSize = Math.min(currentChunkSize, remainingBytes);
 
         // Wait for buffer to clear with timeout and connection check
         try {
@@ -289,7 +362,7 @@ export const useOnDemandTransfer = () => {
         }
 
         // Read chunk using current adaptive size
-        const chunk = await readFileChunk(file, offset, currentChunkSize);
+        const chunk = await readFileChunk(file, offset, actualChunkSize);
 
         // Send chunk header
         peerRef.current.send(JSON.stringify({
@@ -682,16 +755,60 @@ export const useOnDemandTransfer = () => {
       console.log('✅ Peer connected successfully!');
       setIsConnected(true);
       setStatus('connected');
-      
+
       peer.on('data', handlePeerMessage);
-      
+
+      // Initialize SpeedTester
+      speedTesterRef.current = new SpeedTester(peer);
+
       // Test connection with ping
       setTimeout(() => {
         console.log('🔄 Testing connection and syncing files...');
         sendPing();
         sendMyFilesList();
       }, 1000);
-      
+
+      // Run automatic speed detection after connection stabilizes
+      setTimeout(async () => {
+        if (!speedTestCompleted.current && peer.connected) {
+          try {
+            console.log('🚀 Starting automatic speed detection...');
+            const results = await speedTesterRef.current.runSpeedTest((progress) => {
+              console.log('📊 Speed test progress:', progress);
+            });
+
+            console.log('✅ Speed test completed:', results);
+            console.log(`📊 My Upload: ${results.upload.toFixed(2)} MBps, My Download: ${results.download.toFixed(2)} MBps`);
+
+            // Send my speed capabilities to peer
+            const myCapabilities = {
+              type: 'speed-capabilities',
+              uploadSpeed: results.upload,
+              downloadSpeed: results.download,
+              deviceType: navigator.userAgent
+            };
+            peer.send(JSON.stringify(myCapabilities));
+            console.log('📤 Sent my speed capabilities to peer:', myCapabilities);
+
+            // Store my speeds
+            adaptiveAgent.myUploadSpeed = results.upload;
+            adaptiveAgent.myDownloadSpeed = results.download;
+
+            // Calculate initial UATD (will be refined when peer responds)
+            // For now, assume peer has similar capabilities
+            const initialUATD = Math.min(results.upload, results.download);
+
+            console.log(`📊 Initial UATD: ${initialUATD.toFixed(2)} MBps (will adjust when peer responds)`);
+            setDetectedSpeed(initialUATD);
+            adaptiveAgent.setUploadSpeed(initialUATD);
+
+            speedTestCompleted.current = true;
+          } catch (error) {
+            console.error('❌ Speed test failed:', error);
+          }
+        }
+      }, 2000);
+
       // Send file list every 3 seconds for first 15 seconds to ensure sync
       let syncAttempts = 0;
       const syncInterval = setInterval(() => {
@@ -730,6 +847,7 @@ export const useOnDemandTransfer = () => {
       setIsConnected(false);
       setStatus('disconnected');
       setAvailableFiles([]); // Clear available files when peer disconnects
+      speedCapabilitiesExchanged.current = false; // Reset speed capabilities flag
       
       // Clear active transfers on disconnect
       setActiveDownloads([]);
@@ -1091,6 +1209,7 @@ export const useOnDemandTransfer = () => {
       setIsConnected(false);
       setStatus('waiting');
       setAvailableFiles([]);
+      speedCapabilitiesExchanged.current = false; // Reset speed capabilities flag
     };
 
     const handleRoomError = ({ message }) => {
@@ -1142,6 +1261,7 @@ export const useOnDemandTransfer = () => {
     downloadQueue,       // Files waiting to download
     isDownloadingAll,    // Is download all active
     completedDownloads,  // Track which files have been downloaded
+    detectedSpeed,       // Auto-detected upload speed
     shareFiles,          // Share files (metadata only)
     requestDownload,     // Start downloading a file
     downloadAll,         // Download all files sequentially

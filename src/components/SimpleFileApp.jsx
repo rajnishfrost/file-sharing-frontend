@@ -15,6 +15,7 @@ const SimpleFileApp = () => {
     downloadQueue,
     isDownloadingAll,
     completedDownloads,
+    detectedSpeed,
     shareFiles,
     requestDownload,
     downloadAll,
@@ -211,9 +212,9 @@ const SimpleFileApp = () => {
 
       {/* Speed Control - Only show when connected */}
       {isConnected && (
-        <SimpleSpeedControl 
+        <SimpleSpeedControl
           onSpeedChange={handleSpeedChange}
-          initialSpeed={0.1}
+          initialSpeed={detectedSpeed || 0.1}
         />
       )}
 

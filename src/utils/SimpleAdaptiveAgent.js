@@ -4,6 +4,8 @@
  * to automatically optimize transfer speeds between different devices
  */
 
+import { chunkSizeManager } from './chunkSizeManager';
+
 class SimpleAdaptiveAgent {
   constructor() {
     // DYNAMIC UPLOAD SPEED STRATEGY - User Configurable Upload, Unlimited Download
@@ -16,9 +18,15 @@ class SimpleAdaptiveAgent {
     this.downloadTargetSpeed = Infinity; // No download limit
     this.downloadSpeedMbps = 'Unlimited'; // No speed cap
     
-    // Calculate optimal parameters for current upload speed
-    this.uploadChunkSize = 131072; // 128KB chunks (4x larger)
+    // Initialize chunk size manager
+    this.uploadChunkSize = chunkSizeManager.updateSpeed(this.uploadSpeedMBps);
     this.uploadDelay = this.calculateUploadDelay(); // Calculated delay for current speed
+    
+    // Speed measurements for both devices
+    this.localUploadSpeed = 0.1; // Local device upload capability
+    this.localDownloadSpeed = Infinity; // Local device download capability
+    this.remoteUploadSpeed = 0; // Remote device upload capability
+    this.remoteDownloadSpeed = 0; // Remote device download capability
     
     // Fixed parameters - no optimization needed
     this.minChunkSize = 131072; // Fixed 128KB
@@ -70,8 +78,36 @@ class SimpleAdaptiveAgent {
   setUploadSpeed(speedMBps) {
     this.uploadSpeedMBps = speedMBps;
     this.uploadTargetSpeed = speedMBps * 1024 * 1024; // Convert to bytes/second
+    this.uploadChunkSize = chunkSizeManager.updateSpeed(speedMBps); // Update chunk size based on new speed
     this.uploadDelay = this.calculateUploadDelay(); // Recalculate delay
-    console.log(`⚡ Upload speed updated to: ${speedMBps} MBps (delay: ${this.uploadDelay.toFixed(1)}ms)`);
+    console.log(`⚡ Upload speed updated to: ${speedMBps} MBps (delay: ${this.uploadDelay.toFixed(1)}ms, chunk: ${chunkSizeManager.getChunkSizeLabel()})`);
+  }
+  
+  // Set speed capabilities for both devices
+  setSpeedCapabilities(localUpload, localDownload, remoteUpload, remoteDownload) {
+    this.localUploadSpeed = localUpload;
+    this.localDownloadSpeed = localDownload;
+    this.remoteUploadSpeed = remoteUpload;
+    this.remoteDownloadSpeed = remoteDownload;
+    
+    // Calculate UATD (Upload Adjusted To Device) - upload speed limited by remote download
+    const uatd = Math.min(localUpload, remoteDownload);
+    console.log(`🔄 Speed capabilities - Local: ↑${localUpload} ↓${localDownload} MBps | Remote: ↑${remoteUpload} ↓${remoteDownload} MBps | UATD: ${uatd} MBps`);
+    
+    // Auto-adjust upload speed to match remote download capability
+    if (uatd > 0 && uatd !== this.uploadSpeedMBps) {
+      this.setUploadSpeed(uatd);
+    }
+  }
+  
+  // Get slider constraints based on current chunk size range
+  getSliderConstraints() {
+    return chunkSizeManager.getSliderConstraints();
+  }
+  
+  // Get current chunk size label for display
+  getChunkSizeLabel() {
+    return chunkSizeManager.getChunkSizeLabel();
   }
   
   // Process feedback from receiver - CONSTANT SPEED MODE
@@ -164,6 +200,7 @@ class SimpleAdaptiveAgent {
   getStats() {
     return {
       chunkSize: this.getChunkSize(),
+      chunkSizeLabel: this.getChunkSizeLabel(),
       sendDelay: this.getSendDelay(),
       bufferLevel: this.bufferLevel,
       deviceType: this.deviceType,
@@ -178,7 +215,12 @@ class SimpleAdaptiveAgent {
       downloadSpeedMbps: this.downloadSpeedMbps,
       constantMode: this.constantMode,
       calculatedDelay: this.uploadDelay.toFixed(1) + 'ms',
-      mode: `Upload: ${this.uploadSpeedMBps} MBps (Limited) | Download: Unlimited`
+      mode: `Upload: ${this.uploadSpeedMBps} MBps (Limited) | Download: Unlimited`,
+      // Speed capabilities
+      localUploadSpeed: this.localUploadSpeed,
+      localDownloadSpeed: this.localDownloadSpeed,
+      remoteUploadSpeed: this.remoteUploadSpeed,
+      remoteDownloadSpeed: this.remoteDownloadSpeed
     };
   }
 }
