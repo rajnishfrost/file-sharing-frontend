@@ -16,10 +16,14 @@ const SimpleFileApp = () => {
     isDownloadingAll,
     completedDownloads,
     detectedSpeed,
+    isTestingSpeed,
+    speedTestProgress,
+    speedTestResults,
     shareFiles,
     requestDownload,
     downloadAll,
     refreshAvailableFiles,
+    runSpeedTest,
     createRoom,
     joinRoom,
     formatSize,
@@ -215,6 +219,10 @@ const SimpleFileApp = () => {
         <SimpleSpeedControl
           onSpeedChange={handleSpeedChange}
           initialSpeed={detectedSpeed || 0.1}
+          isTestingSpeed={isTestingSpeed}
+          speedTestProgress={speedTestProgress}
+          speedTestResults={speedTestResults}
+          onRunSpeedTest={runSpeedTest}
         />
       )}
 
