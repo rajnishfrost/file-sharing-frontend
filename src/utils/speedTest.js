@@ -296,16 +296,22 @@ export class SpeedTester {
         return;
       }
 
-      // Timeout after 10 seconds (peer delay + test duration + buffer clearing)
+      // Timeout after 5 seconds (peer delay + test duration + buffer)
       setTimeout(() => {
         if (this.downloadTestActive) {
           console.log('⚠️ Download speed test timeout');
           this.downloadTestActive = false;
+          const bytesReceived = this.downloadTestBytesReceived;
+          const elapsed = this.downloadTestStartTime ? (Date.now() - this.downloadTestStartTime) / 1000 : 0;
+          const speed = elapsed > 0 ? (bytesReceived / elapsed) / (1024 * 1024) : 0;
+
+          console.log(`📊 Timeout with partial results: ${(bytesReceived / 1024 / 1024).toFixed(2)} MB in ${elapsed.toFixed(1)}s = ${speed.toFixed(2)} MBps`);
+
           this.downloadTestResolve = null;
           this.downloadTestOnProgress = null;
-          resolve(0); // Failed to test
+          resolve(speed); // Return partial result instead of 0
         }
-      }, 10000);
+      }, 5000);
     });
   }
 
@@ -318,19 +324,22 @@ export class SpeedTester {
         // Peer wants us to send data for their download test
         console.log('📤 Peer requested download speed test, sending data...');
 
-        // Wait 0.5 seconds before starting
-        console.log('⏳ Waiting 0.5 seconds before starting...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Shorter delay before starting (reduced from 500ms to 100ms)
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         const testData = new Uint8Array(TEST_CHUNK_SIZE);
         for (let i = 0; i < testData.length; i += 1000) {
           testData[i] = Math.floor(Math.random() * 256);
         }
 
+        // Send start signal
         peer.send(JSON.stringify({
           type: 'speed-test-download-start',
           duration: TEST_DURATION
         }));
+
+        // Small delay to ensure message is processed first
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         const startTime = Date.now();
         let bytesSent = 0;
@@ -343,7 +352,7 @@ export class SpeedTester {
           }
 
           const bufferAmount = peer.bufferedAmount || 0;
-          const maxBuffer = TEST_CHUNK_SIZE * 8;
+          const maxBuffer = TEST_CHUNK_SIZE * 4; // Reduced buffer limit for faster sending
 
           if (bufferAmount < maxBuffer) {
             try {
@@ -354,10 +363,10 @@ export class SpeedTester {
               break;
             }
           } else {
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise(resolve => setTimeout(resolve, 20)); // Shorter wait when buffer full
           }
 
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise(resolve => setTimeout(resolve, 5)); // Reduced delay for faster sending
         }
 
         const duration = (Date.now() - startTime) / 1000;

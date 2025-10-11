@@ -388,13 +388,13 @@ export const useOnDemandTransfer = () => {
           await waitForBuffer(peerRef.current);
         } catch (bufferError) {
           console.warn('⚠️ Buffer timeout, checking connection...');
-          
+
           // Check if connection is still alive
           if (!peerRef.current || !peerRef.current.connected) {
             throw new Error('Connection lost during buffer wait');
           }
-          
-          await delay(200); // Give extra time for connection to recover
+
+          await delay(500); // Give extra time for connection to recover (increased from 200ms)
         }
 
         // Read chunk using current adaptive size
@@ -411,38 +411,58 @@ export const useOnDemandTransfer = () => {
 
         await delay(10); // Small delay for connection stability
 
-        // Send chunk data with retry logic
+        // Send chunk data with improved retry logic
         let retries = 0;
-        const maxRetries = 3;
+        const maxRetries = 10; // Increased from 3
         while (retries < maxRetries) {
           try {
             if (!peerRef.current || !peerRef.current.connected) {
               throw new Error('Peer disconnected');
             }
+
+            // Check buffer before sending
+            const currentBufferAmount = peerRef.current.bufferedAmount || 0;
+            const bufferLimit = 512 * 1024; // 512KB buffer limit
+
+            if (currentBufferAmount > bufferLimit) {
+              console.warn(`⚠️ Buffer too full (${(currentBufferAmount / 1024).toFixed(0)}KB), waiting before send...`);
+              await delay(200); // Wait for buffer to drain
+              throw new Error('Buffer full, retrying'); // Trigger retry
+            }
+
             peerRef.current.send(chunk);
             break; // Success
           } catch (sendError) {
             retries++;
-            console.warn(`⚠️ Send retry ${retries}/${maxRetries} for chunk ${chunkIndex}`);
+            const backoffDelay = Math.min(200 * Math.pow(2, retries - 1), 2000); // Exponential backoff, max 2s
+            console.warn(`⚠️ Send retry ${retries}/${maxRetries} for chunk ${chunkIndex} (waiting ${backoffDelay}ms)`);
+
             if (retries >= maxRetries) {
+              console.error(`❌ Failed to send chunk ${chunkIndex} after ${maxRetries} retries`);
               throw sendError;
             }
-            await delay(100 * retries); // Exponential backoff
+
+            await delay(backoffDelay);
           }
         }
 
         offset += chunk.byteLength;
 
-        // Update upload progress
+        // Calculate upload progress and speed
         const progress = (offset / file.size) * 100;
-        const elapsed = (Date.now() - uploadProgress.startTime) / 1000;
+        const elapsed = Math.max((Date.now() - uploadProgress.startTime) / 1000, 0.1); // Prevent division by zero
         const speed = offset / elapsed;
 
-        setActiveDownloads(prev => prev.map(d => 
-          d.id === transferId 
-            ? { ...d, progress, speed, bytesTransferred: offset }
-            : d
-        ));
+        // Throttle UI updates - update every 10 chunks or on last chunk for smooth display
+        const shouldUpdateUI = (chunkIndex % 10 === 0) || (chunkIndex === totalChunks - 1);
+
+        if (shouldUpdateUI) {
+          setActiveDownloads(prev => prev.map(d =>
+            d.id === transferId
+              ? { ...d, progress, speed, bytesTransferred: offset }
+              : d
+          ));
+        }
 
         // Log progress every 1000 chunks
         if (chunkIndex % 1000 === 0 || chunkIndex === totalChunks - 1) {
@@ -560,28 +580,39 @@ export const useOnDemandTransfer = () => {
     for (const [transferId, transfer] of activeTransfersRef.current.entries()) {
       if (transfer.isDownloading && transfer.expectedChunk) {
         const chunkInfo = transfer.expectedChunk;
-        
+
         // Store chunk
         transfer.chunks[chunkInfo.chunkIndex] = chunkData;
         transfer.receivedChunks++;
         transfer.bytesReceived += chunkData.byteLength;
         transfer.progress = (transfer.bytesReceived / transfer.fileSize) * 100;
-        
+
         // Log chunk reception for debugging
         if (chunkInfo.chunkIndex % 100 === 0 || chunkInfo.isLast) {
           console.log(`📦 Received chunk ${chunkInfo.chunkIndex}/${transfer.totalChunks} (${transfer.receivedChunks} total received)`);
         }
-        
+
         // Calculate speed
-        const elapsed = (Date.now() - transfer.startTime) / 1000;
+        const elapsed = Math.max((Date.now() - transfer.startTime) / 1000, 0.1); // Prevent division by zero
         transfer.speed = transfer.bytesReceived / elapsed;
-        
+
         transfer.expectedChunk = null;
 
-        // Update UI
-        setActiveDownloads(prev => prev.map(d => 
-          d.id === transferId ? { ...transfer } : d
-        ));
+        // Throttle UI updates - update every 10 chunks or on last chunk for smooth display
+        const shouldUpdateUI = (transfer.receivedChunks % 10 === 0) || chunkInfo.isLast;
+
+        if (shouldUpdateUI) {
+          // Update UI with current speed
+          setActiveDownloads(prev => prev.map(d =>
+            d.id === transferId ? {
+              ...d,
+              progress: transfer.progress,
+              speed: transfer.speed,
+              bytesReceived: transfer.bytesReceived,
+              receivedChunks: transfer.receivedChunks
+            } : d
+          ));
+        }
 
         // Log progress
         if (transfer.receivedChunks % 1000 === 0 || chunkInfo.isLast) {
@@ -1129,26 +1160,30 @@ export const useOnDemandTransfer = () => {
     });
   };
 
-  const waitForBuffer = (peer, threshold = 32 * 1024) => {
+  const waitForBuffer = (peer, threshold = 256 * 1024) => {
     return new Promise((resolve, reject) => {
       let attempts = 0;
-      const maxAttempts = 100; // 5 seconds max wait
-      
+      const maxAttempts = 200; // 10 seconds max wait (increased from 5s)
+
       const checkBuffer = () => {
         if (!peer || !peer.connected) {
           reject(new Error('Peer disconnected while waiting for buffer'));
           return;
         }
-        
+
         attempts++;
         const bufferAmount = peer.bufferedAmount || 0;
-        
+
         if (bufferAmount < threshold) {
           resolve();
         } else if (attempts >= maxAttempts) {
           console.warn(`⚠️ Buffer still at ${bufferAmount} bytes after ${attempts} attempts - continuing anyway`);
           resolve(); // Don't reject, just continue
         } else {
+          // Log warning if buffer is critically high
+          if (bufferAmount > 1024 * 1024 && attempts % 20 === 0) {
+            console.warn(`⚠️ High buffer level: ${(bufferAmount / 1024 / 1024).toFixed(2)} MB (attempt ${attempts}/${maxAttempts})`);
+          }
           setTimeout(checkBuffer, 50);
         }
       };
